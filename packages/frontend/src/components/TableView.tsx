@@ -24,6 +24,9 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
 
   const boardRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
+  // Dropped positions we still render locally until the server echoes the
+  // move back — otherwise the item briefly jumps to its stale position.
+  const [pending, setPending] = useState<Record<string, { x: number; y: number }>>({});
   const [showQr, setShowQr] = useState(false);
 
   if (table === undefined || players === undefined || cards === undefined) {
@@ -58,33 +61,53 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
     setDrag({ ...drag, x: pos.x, y: pos.y, moved: true });
   };
 
+  const moveWithOverride = (
+    id: string,
+    x: number,
+    y: number,
+    mutate: () => Promise<unknown>,
+  ) => {
+    setPending((p) => ({ ...p, [id]: { x, y } }));
+    // Convex resolves a mutation only after our subscriptions reflect the
+    // write, so dropping the override here can't flash the old position.
+    void mutate().finally(() => {
+      setPending(({ [id]: _dropped, ...rest }) => rest);
+    });
+  };
+
   const endDrag = () => {
     if (drag === null) return;
     if (drag.kind === "card") {
       if (drag.moved) {
-        void run(api.cards.moveOnBoard, {
-          cardId: drag.id as CardId,
-          x: drag.x,
-          y: drag.y,
-        });
+        moveWithOverride(drag.id, drag.x, drag.y, () =>
+          run(api.cards.moveOnBoard, {
+            cardId: drag.id as CardId,
+            x: drag.x,
+            y: drag.y,
+          }),
+        );
       } else {
         // A tap on a board card flips it over.
         void run(api.cards.flip, { cardId: drag.id as CardId });
       }
     } else if (drag.moved) {
-      void run(api.players.move, {
-        playerId: drag.id as PlayerId,
-        x: drag.x,
-        y: drag.y,
-      });
+      moveWithOverride(drag.id, drag.x, drag.y, () =>
+        run(api.players.move, {
+          playerId: drag.id as PlayerId,
+          x: drag.x,
+          y: drag.y,
+        }),
+      );
     }
     setDrag(null);
   };
 
-  const dragPosition = (kind: Drag["kind"], id: string, x: number, y: number) =>
-    drag !== null && drag.kind === kind && drag.id === id
-      ? { x: drag.x, y: drag.y }
-      : { x, y };
+  const dragPosition = (kind: Drag["kind"], id: string, x: number, y: number) => {
+    if (drag !== null && drag.kind === kind && drag.id === id) {
+      return { x: drag.x, y: drag.y };
+    }
+    return pending[id] ?? { x, y };
+  };
 
   return (
     <div className="table-page">
@@ -168,7 +191,11 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                   left: `${pos.x * 100}%`,
                   top: `${pos.y * 100}%`,
                   zIndex:
-                    drag?.kind === "card" && drag.id === card._id ? 1000 : card.z,
+                    drag?.kind === "card" && drag.id === card._id
+                      ? 1000
+                      : pending[card._id] !== undefined
+                        ? 999
+                        : card.z,
                 }}
                 onPointerDown={startDrag("card", card._id)}
                 onPointerMove={onDragMove}
