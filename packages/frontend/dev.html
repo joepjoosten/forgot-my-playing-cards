@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FMPC — local dev table</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0d2b1c;
+        color: #f4f1e8;
+        font-family: system-ui, sans-serif;
+      }
+      .layout {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        gap: 8px;
+        padding: 8px;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .toolbar h1 {
+        font-size: 16px;
+        margin: 0;
+        flex: 1;
+      }
+      .toolbar button {
+        font-size: 15px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.12);
+        color: inherit;
+        cursor: pointer;
+      }
+      #table-frame {
+        flex: 3;
+        min-height: 0;
+      }
+      #players {
+        flex: 2;
+        display: flex;
+        gap: 8px;
+        min-height: 0;
+      }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        border-radius: 12px;
+        background: #145a39;
+      }
+      #players iframe {
+        flex: 1;
+        min-width: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <div class="toolbar">
+        <h1>🃏 Forgot My Playing Cards — local dev (1 table + players)</h1>
+        <button id="add-player" disabled>＋ Add player</button>
+      </div>
+      <iframe id="table-frame" title="Table"></iframe>
+      <div id="players"></div>
+    </div>
+    <script type="module" src="/dev.ts"></script>
+  </body>
+</html>

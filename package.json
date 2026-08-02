@@ -1,0 +1,22 @@
+{
+  "name": "forgot-my-playing-cards",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n convex,vite -c blue,green \"convex dev\" \"npm run dev -w @fmpc/frontend\"",
+    "dev:convex": "convex dev",
+    "dev:frontend": "npm run dev -w @fmpc/frontend",
+    "build": "npm run build -w @fmpc/frontend",
+    "typecheck": "npm run typecheck -w @fmpc/backend && npm run typecheck -w @fmpc/frontend",
+    "deploy": "convex deploy --cmd 'npm run build' --cmd-url-env-var-name VITE_CONVEX_URL"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "convex": "^1.43.0",
+    "effect": "^3.22.1",
+    "typescript": "~5.9.2"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@fmpc/backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "convex": "^1.43.0",
+    "effect": "4.0.0-beta.102"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}
