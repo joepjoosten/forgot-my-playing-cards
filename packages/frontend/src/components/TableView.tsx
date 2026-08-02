@@ -449,6 +449,10 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           {/* players */}
           {players.map((player: Player) => {
             const pos = dragPosition("player", player._id, player.x, player.y);
+            const handCount = cards.handCounts[player._id] ?? 0;
+            // Player disks grow with the board so names and hands read
+            // well from a distance on a TV.
+            const scale = Math.max(1, Math.min(1.7, (boardWidth || 800) / 800));
             return (
               <div
                 key={player._id}
@@ -457,6 +461,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                   left: `${pos.x * 100}%`,
                   top: `${pos.y * 100}%`,
                   borderColor: player.color,
+                  transform: `translate(-50%, -50%) scale(${scale})`,
                 }}
                 onPointerDown={startDrag("player", player._id)}
                 onPointerMove={onDragMove}
@@ -464,8 +469,15 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                 onPointerCancel={endDrag}
               >
                 <span className="player-name">{player.name}</span>
-                <span className="player-count" style={{ background: player.color }}>
-                  {cards.handCounts[player._id] ?? 0}
+                <span className="player-cards">
+                  {Array.from({ length: Math.min(handCount, 5) }, (_, i) => (
+                    <span key={i} className="player-mini-card" />
+                  ))}
+                  {handCount > 5 && (
+                    <span className="player-count" style={{ background: player.color }}>
+                      {handCount}
+                    </span>
+                  )}
                 </span>
               </div>
             );
