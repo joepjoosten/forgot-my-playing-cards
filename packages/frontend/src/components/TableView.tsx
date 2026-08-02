@@ -473,11 +473,9 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                   {Array.from({ length: Math.min(handCount, 5) }, (_, i) => (
                     <span key={i} className="player-mini-card" />
                   ))}
-                  {handCount > 5 && (
-                    <span className="player-count" style={{ background: player.color }}>
-                      {handCount}
-                    </span>
-                  )}
+                  <span className="player-count" style={{ background: player.color }}>
+                    {handCount}
+                  </span>
                 </span>
               </div>
             );
