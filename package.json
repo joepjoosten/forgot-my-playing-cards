@@ -16,7 +16,6 @@
   "devDependencies": {
     "concurrently": "^9.1.2",
     "convex": "^1.43.0",
-    "effect": "^3.22.1",
     "typescript": "~5.9.2"
   }
 }

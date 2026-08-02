@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useAtomValue } from "@effect-atom/atom-react";
+import { useAtomValue } from "@effect/atom-react";
 import { api } from "@backend/convex/_generated/api";
 import { convexQuery, run } from "../convex";
 import { CardView } from "./CardView";

@@ -20,14 +20,12 @@ Everything is synchronized in realtime through [Convex](https://convex.dev).
 | Piece | Tech |
 | --- | --- |
 | Backend (`packages/backend`) | Convex functions, [Effect](https://effect.website) **v4 beta** for the deck building / shuffling / dealing programs |
-| Frontend (`packages/frontend`) | React 19 + Vite, [`@effect-atom/atom-react`](https://github.com/tim-smart/effect-atom) (Effect v3) for state, `qrcode` for joining |
+| Frontend (`packages/frontend`) | React 19 + Vite, Effect v4's built-in Atom (`effect/unstable/reactivity`) with the [`@effect/atom-react`](https://github.com/Effect-TS/effect/tree/main/packages/atom) hooks, `qrcode` for joining |
 | Hosting | GitHub Pages (frontend) + Convex Cloud (backend), deployed by GitHub Actions |
 
-> **Why two Effect versions?** `@effect-atom/atom-react` currently peers on
-> Effect v3. The root of the workspace pins `effect@^3` (hoisted, used by the
-> frontend), while `packages/backend` depends on `effect@4.0.0-beta.x`, which
-> npm nests under `packages/backend/node_modules`. Both sides import plain
-> `"effect"` and get the right version.
+Both workspaces use the same `effect@4.0.0-beta.x`: the Atom state layer moved
+into Effect core in v4 (`effect/unstable/reactivity`), with framework bindings
+published as `@effect/atom-react`.
 
 ## Local development
 

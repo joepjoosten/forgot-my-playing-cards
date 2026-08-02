@@ -1,4 +1,4 @@
-import { useAtomValue } from "@effect-atom/atom-react";
+import { useAtomValue } from "@effect/atom-react";
 import { routeAtom } from "./route";
 import { Home } from "./components/Home";
 import { DevNew } from "./components/DevNew";
