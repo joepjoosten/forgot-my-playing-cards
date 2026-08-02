@@ -9,6 +9,9 @@ const THROW_DISTANCE = 90;
 
 interface HandDrag {
   cardId: CardId;
+  /** Index in the hand when the drag started — the card stays anchored
+   * here (plus dx) so it remains under the finger while neighbours shift. */
+  startIndex: number;
   startX: number;
   startY: number;
   dx: number;
@@ -30,6 +33,8 @@ export const PlayerView = ({
   const [selected, setSelected] = useState<CardId | null>(null);
   const [localOrder, setLocalOrder] = useState<ReadonlyArray<CardId> | null>(null);
   const [drag, setDrag] = useState<HandDrag | null>(null);
+  const [hidden, setHidden] = useState<ReadonlySet<CardId>>(new Set());
+  const orderEpoch = useRef(0);
   const stripRef = useRef<HTMLDivElement>(null);
 
   if (table === undefined || player === undefined || hand === undefined) {
@@ -47,10 +52,12 @@ export const PlayerView = ({
   }
 
   // While dragging we show our local order; otherwise the server's order.
+  // Cards that just left the hand stay hidden until the server confirms.
+  const visibleHand = hand.filter((c) => !hidden.has(c._id as CardId));
   const orderedHand: Array<Card> =
     localOrder === null
-      ? hand
-      : [...hand].sort(
+      ? visibleHand
+      : [...visibleHand].sort(
           (a, b) =>
             localOrder.indexOf(a._id as CardId) - localOrder.indexOf(b._id as CardId),
         );
@@ -65,21 +72,40 @@ export const PlayerView = ({
           (stripWidth - cardWidth - 24) / (orderedHand.length - 1),
         );
 
+  // Cards leaving the hand are hidden locally until the server confirms,
+  // and a fresh local order is kept until the reorder mutation settles —
+  // otherwise the hand briefly snaps back to its stale server state.
+  const removeFromHand = (cardId: CardId, mutate: () => Promise<unknown>) => {
+    setHidden((prev) => new Set(prev).add(cardId));
+    void mutate().finally(() => {
+      setHidden((prev) => {
+        const next = new Set(prev);
+        next.delete(cardId);
+        return next;
+      });
+    });
+  };
+
   const playCard = (cardId: CardId, faceUp: boolean) => {
     setSelected(null);
-    void run(api.cards.play, {
-      cardId,
-      x: 0.32 + Math.random() * 0.36,
-      y: 0.34 + Math.random() * 0.32,
-      faceUp,
-    });
+    removeFromHand(cardId, () =>
+      run(api.cards.play, {
+        cardId,
+        x: 0.32 + Math.random() * 0.36,
+        y: 0.34 + Math.random() * 0.32,
+        faceUp,
+      }),
+    );
   };
 
   const onPointerDown =
     (card: Card) => (e: React.PointerEvent<HTMLDivElement>) => {
       e.currentTarget.setPointerCapture(e.pointerId);
+      // Invalidate any pending reorder cleanup; this drag owns the order now.
+      orderEpoch.current++;
       setDrag({
         cardId: card._id as CardId,
+        startIndex: orderedHand.findIndex((c) => c._id === card._id),
         startX: e.clientX,
         startY: e.clientY,
         dx: 0,
@@ -98,11 +124,9 @@ export const PlayerView = ({
     if (dy > -THROW_DISTANCE / 2) {
       const from = localOrder.indexOf(drag.cardId);
       const shift = Math.round(dx / slot);
-      const original = hand.map((c) => c._id as CardId);
-      const originalIndex = original.indexOf(drag.cardId);
       const to = Math.min(
         localOrder.length - 1,
-        Math.max(0, originalIndex + shift),
+        Math.max(0, drag.startIndex + shift),
       );
       if (from !== to) {
         const next = [...localOrder];
@@ -120,19 +144,30 @@ export const PlayerView = ({
 
     if (isThrow) {
       playCard(drag.cardId, table.config.playFaceUp);
+      setLocalOrder(null);
     } else if (moved) {
       const serverOrder = hand.map((c) => c._id as CardId);
       const changed =
         localOrder.length !== serverOrder.length ||
         localOrder.some((id, i) => id !== serverOrder[i]);
       if (changed) {
-        void run(api.cards.reorderHand, { playerId, cardIds: [...localOrder] });
+        // Keep showing the local order until the server echoes it back;
+        // a newer drag (epoch bump) takes precedence over this cleanup.
+        const epoch = ++orderEpoch.current;
+        void run(api.cards.reorderHand, {
+          playerId,
+          cardIds: [...localOrder],
+        }).finally(() => {
+          if (orderEpoch.current === epoch) setLocalOrder(null);
+        });
+      } else {
+        setLocalOrder(null);
       }
     } else {
       setSelected((s) => (s === drag.cardId ? null : drag.cardId));
+      setLocalOrder(null);
     }
     setDrag(null);
-    setLocalOrder(null);
   };
 
   const stockCount = piles?.stockCount ?? 0;
@@ -190,7 +225,9 @@ export const PlayerView = ({
                     isThrowing ? " hand-card-throwing" : ""
                   }`}
                   style={{
-                    left: 12 + index * slot,
+                    // The dragged card stays anchored at its start slot so it
+                    // tracks the finger; only the neighbours change slots.
+                    left: 12 + (isDragged ? drag.startIndex : index) * slot,
                     zIndex: isDragged ? 100 : index,
                     transform: isDragged
                       ? `translate(${drag.dx}px, ${Math.min(0, drag.dy)}px) rotate(${
@@ -238,7 +275,9 @@ export const PlayerView = ({
                 <button
                   className="btn btn-big"
                   onClick={() => {
-                    void run(api.cards.burn, { cardId: selected });
+                    removeFromHand(selected, () =>
+                      run(api.cards.burn, { cardId: selected }),
+                    );
                     setSelected(null);
                   }}
                 >
