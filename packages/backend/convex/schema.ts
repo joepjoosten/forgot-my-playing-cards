@@ -23,6 +23,12 @@ export const tableConfig = v.object({
   stockPile: v.boolean(),
   burnPile: v.boolean(),
   playFaceUp: v.boolean(),
+  // Render suits in four colors (♥ red, ♦ blue, ♣ green, ♠ black).
+  // Optional so tables created before this field existed stay valid.
+  fourColor: v.optional(v.boolean()),
+  // When false, cards can only be discarded to the burn pile — nothing
+  // is played onto the table (defaults to true).
+  playToBoard: v.optional(v.boolean()),
 });
 
 export const language = v.union(v.literal("en"), v.literal("nl"));

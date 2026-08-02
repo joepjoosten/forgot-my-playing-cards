@@ -4,11 +4,34 @@ interface CardViewProps {
   faceUp: boolean;
   width: number;
   selected?: boolean;
+  /** Four-color deck: ♥ red, ♦ blue, ♣ green, ♠ black. */
+  fourColor?: boolean;
 }
 
-const isRed = (suit: string) => suit === "♥" || suit === "♦";
+const suitClass = (suit: string, fourColor: boolean): string => {
+  if (fourColor) {
+    switch (suit) {
+      case "♥":
+        return "card-red";
+      case "♦":
+        return "card-blue";
+      case "♣":
+        return "card-green";
+      default:
+        return "card-black";
+    }
+  }
+  return suit === "♥" || suit === "♦" ? "card-red" : "card-black";
+};
 
-export const CardView = ({ rank, suit, faceUp, width, selected }: CardViewProps) => {
+export const CardView = ({
+  rank,
+  suit,
+  faceUp,
+  width,
+  selected,
+  fourColor,
+}: CardViewProps) => {
   const height = width * 1.4;
   if (!faceUp) {
     return (
@@ -21,7 +44,7 @@ export const CardView = ({ rank, suit, faceUp, width, selected }: CardViewProps)
   const joker = rank === "JOKER";
   return (
     <div
-      className={`card card-face ${isRed(suit) ? "card-red" : "card-black"}${
+      className={`card card-face ${suitClass(suit, fourColor ?? false)}${
         selected ? " card-selected" : ""
       }`}
       style={{ width, height, fontSize: width * 0.28 }}

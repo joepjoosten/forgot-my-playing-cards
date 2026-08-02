@@ -17,6 +17,8 @@ export const defaultConfig: TableConfig = {
   stockPile: true,
   burnPile: true,
   playFaceUp: true,
+  fourColor: false,
+  playToBoard: true,
 };
 
 export const storedPlayerKey = (tableId: string) => `fmpc:player:${tableId}`;

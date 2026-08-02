@@ -119,15 +119,27 @@ export const Home = () => {
           </label>
         </div>
 
-        <label className="field">
-          <span>{t(lang, "home.dealPerPlayer")}</span>
-          <NumberStepper
-            value={config.dealPerPlayer}
-            min={0}
-            max={30}
-            onChange={(dealPerPlayer) => patch({ dealPerPlayer })}
-          />
-        </label>
+        <div className="field-row">
+          <label className="field">
+            <span>{t(lang, "home.dealPerPlayer")}</span>
+            <NumberStepper
+              value={config.dealPerPlayer}
+              min={0}
+              max={30}
+              onChange={(dealPerPlayer) => patch({ dealPerPlayer })}
+            />
+          </label>
+          <label className="field">
+            <span>{t(lang, "home.cardColors")}</span>
+            <select
+              value={config.fourColor === true ? "4" : "2"}
+              onChange={(e) => patch({ fourColor: e.target.value === "4" })}
+            >
+              <option value="2">{t(lang, "home.colors2")}</option>
+              <option value="4">{t(lang, "home.colors4")}</option>
+            </select>
+          </label>
+        </div>
 
         <div className="field-row toggles">
           <label className="toggle">
@@ -142,6 +154,7 @@ export const Home = () => {
             <input
               type="checkbox"
               checked={config.burnPile}
+              disabled={config.playToBoard === false}
               onChange={(e) => patch({ burnPile: e.target.checked })}
             />
             <span>{t(lang, "home.burnPile")}</span>
@@ -149,11 +162,28 @@ export const Home = () => {
           <label className="toggle">
             <input
               type="checkbox"
-              checked={config.playFaceUp}
-              onChange={(e) => patch({ playFaceUp: e.target.checked })}
+              checked={config.playToBoard !== false}
+              onChange={(e) =>
+                // Burn-only tables need the burn pile: cards must go somewhere.
+                patch(
+                  e.target.checked
+                    ? { playToBoard: true }
+                    : { playToBoard: false, burnPile: true },
+                )
+              }
             />
-            <span>{t(lang, "home.playFaceUp")}</span>
+            <span>{t(lang, "home.playToBoard")}</span>
           </label>
+          {config.playToBoard !== false && (
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={config.playFaceUp}
+                onChange={(e) => patch({ playFaceUp: e.target.checked })}
+              />
+              <span>{t(lang, "home.playFaceUp")}</span>
+            </label>
+          )}
         </div>
 
         <button className="btn btn-primary btn-big" onClick={create} disabled={creating}>

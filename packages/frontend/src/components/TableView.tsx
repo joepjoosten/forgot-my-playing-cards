@@ -29,7 +29,7 @@ interface Flight {
 }
 
 /** A card flying across the board (pile ↔ player). */
-const FlyingCard = ({ flight }: { flight: Flight }) => {
+const FlyingCard = ({ flight, fourColor }: { flight: Flight; fourColor: boolean }) => {
   const [pos, setPos] = useState(flight.from);
   const [landed, setLanded] = useState(false);
 
@@ -55,6 +55,7 @@ const FlyingCard = ({ flight }: { flight: Flight }) => {
         suit={flight.face?.suit ?? ""}
         faceUp={flight.face?.faceUp ?? false}
         width={52}
+        fourColor={fourColor}
       />
     </div>
   );
@@ -146,6 +147,8 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   }
 
   const lang = table.language ?? "en";
+  const fourColor = table.config.fourColor === true;
+  const canPlayToBoard = table.config.playToBoard !== false;
   const joinLink = absoluteLink(`/join/${tableId}`);
   const inLobby = table.status === "lobby";
 
@@ -233,7 +236,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               ? t(lang, "table.startRound")
               : t(lang, "table.newRound", { round: table.round })}
           </button>
-          {table.config.burnPile && !inLobby && (
+          {table.config.burnPile && !inLobby && canPlayToBoard && (
             <button
               className="btn"
               onClick={() => void run(api.tables.gatherBoard, { tableId, to: "burn" })}
@@ -241,7 +244,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               {t(lang, "table.gatherBurn")}
             </button>
           )}
-          {table.config.stockPile && !inLobby && (
+          {table.config.stockPile && !inLobby && canPlayToBoard && (
             <button
               className="btn"
               onClick={() => void run(api.tables.gatherBoard, { tableId, to: "stock" })}
@@ -301,6 +304,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                     suit={cards.burnTop.suit}
                     faceUp={cards.burnTop.faceUp}
                     width={64}
+                    fourColor={fourColor}
                   />
                 ) : (
                   <div className="pile-empty" />
@@ -344,6 +348,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                     48,
                     (boardRef.current?.clientWidth ?? 800) * CARD_WIDTH_FRACTION,
                   )}
+                  fourColor={fourColor}
                 />
               </div>
             );
@@ -358,6 +363,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
             return (
               <FlyingCard
                 key={flight.id}
+                fourColor={fourColor}
                 flight={
                   boardCard === undefined
                     ? flight

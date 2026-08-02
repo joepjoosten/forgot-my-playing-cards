@@ -54,6 +54,8 @@ export const PlayerView = ({
   }
 
   const lang = table.language ?? "en";
+  const canPlayToBoard = table.config.playToBoard !== false;
+  const fourColor = table.config.fourColor === true;
 
   // While dragging we show our local order; otherwise the server's order.
   // Cards that just left the hand stay hidden until the server confirms.
@@ -147,7 +149,15 @@ export const PlayerView = ({
     const moved = Math.abs(drag.dx) > 8 || Math.abs(drag.dy) > 8;
 
     if (isThrow) {
-      playCard(drag.cardId, table.config.playFaceUp);
+      if (canPlayToBoard) {
+        playCard(drag.cardId, table.config.playFaceUp);
+      } else {
+        // Burn-only table: an upward flick discards to the burn pile.
+        setSelected(null);
+        removeFromHand(drag.cardId, () =>
+          run(api.cards.burn, { cardId: drag.cardId }),
+        );
+      }
       setLocalOrder(null);
     } else if (moved) {
       const serverOrder = hand.map((c) => c._id as CardId);
@@ -217,7 +227,9 @@ export const PlayerView = ({
         </div>
       ) : (
         <>
-          <p className="player-hint">{t(lang, "player.hint")}</p>
+          <p className="player-hint">
+            {t(lang, canPlayToBoard ? "player.hint" : "player.hintBurnOnly")}
+          </p>
           <div className="hand-strip" ref={stripRef}>
             {orderedHand.map((card, index) => {
               const isDragged = drag !== null && drag.cardId === card._id;
@@ -256,6 +268,7 @@ export const PlayerView = ({
                     faceUp={true}
                     width={cardWidth}
                     selected={selected === card._id}
+                    fourColor={fourColor}
                   />
                 </div>
               );
@@ -267,21 +280,25 @@ export const PlayerView = ({
 
           {selected !== null && (
             <div className="card-action-bar">
-              <button
-                className="btn btn-primary btn-big"
-                onClick={() => playCard(selected, table.config.playFaceUp)}
-              >
-                {t(lang, "player.play")}
-              </button>
-              <button
-                className="btn btn-big"
-                onClick={() => playCard(selected, false)}
-              >
-                {t(lang, "player.playFaceDown")}
-              </button>
-              {table.config.burnPile && (
+              {canPlayToBoard && (
+                <button
+                  className="btn btn-primary btn-big"
+                  onClick={() => playCard(selected, table.config.playFaceUp)}
+                >
+                  {t(lang, "player.play")}
+                </button>
+              )}
+              {canPlayToBoard && (
                 <button
                   className="btn btn-big"
+                  onClick={() => playCard(selected, false)}
+                >
+                  {t(lang, "player.playFaceDown")}
+                </button>
+              )}
+              {table.config.burnPile && (
+                <button
+                  className={`btn btn-big${canPlayToBoard ? "" : " btn-primary"}`}
                   onClick={() => {
                     removeFromHand(selected, () =>
                       run(api.cards.burn, { cardId: selected }),

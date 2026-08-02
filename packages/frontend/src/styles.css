@@ -203,6 +203,14 @@ select {
   color: #1c1c1e;
 }
 
+.card-blue {
+  color: #1f5fbf;
+}
+
+.card-green {
+  color: #1d7a3a;
+}
+
 .card-back {
   background:
     repeating-linear-gradient(45deg, #7a1f2b 0 6px, #8e2635 6px 12px);
