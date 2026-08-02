@@ -3,17 +3,14 @@ import { api } from "@backend/convex/_generated/api";
 import { convex } from "../convex";
 import { navigate } from "../route";
 import { defaultConfig, type TableConfig } from "../model";
+import { detectLanguage, t } from "../i18n";
 
-const shuffleOptions = [
-  { value: "riffle", label: "Riffle shuffle" },
-  { value: "overhand", label: "Overhand shuffle" },
-  { value: "fisher-yates", label: "Perfect random" },
-  { value: "cut", label: "Cut only" },
-  { value: "none", label: "No shuffle" },
-] as const;
+const shuffleKinds = ["riffle", "overhand", "fisher-yates", "cut", "none"] as const;
 
 export const Home = () => {
-  const [name, setName] = useState("My table");
+  // No table exists yet, so the creating client's browser language decides.
+  const [lang] = useState(detectLanguage);
+  const [name, setName] = useState(() => t(detectLanguage(), "home.defaultTableName"));
   const [config, setConfig] = useState<TableConfig>(defaultConfig);
   const [creating, setCreating] = useState(false);
 
@@ -25,8 +22,9 @@ export const Home = () => {
     setCreating(true);
     try {
       const tableId = await convex.mutation(api.tables.create, {
-        name: name.trim() === "" ? "Card table" : name.trim(),
+        name: name.trim() === "" ? t(lang, "home.fallbackTableName") : name.trim(),
         config,
+        language: lang,
       });
       navigate(`/table/${tableId}`);
     } catch (error) {
@@ -38,24 +36,21 @@ export const Home = () => {
   return (
     <div className="page home-page">
       <h1 className="app-title">🃏 Forgot My Playing Cards</h1>
-      <p className="app-subtitle">
-        A shared card table for any game — the table handles decks, shuffling
-        and dealing, you bring the rules.
-      </p>
+      <p className="app-subtitle">{t(lang, "home.subtitle")}</p>
 
       <div className="panel">
         <label className="field">
-          <span>Table name</span>
+          <span>{t(lang, "home.tableName")}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Friday night rummy"
+            placeholder={t(lang, "home.tableNamePlaceholder")}
           />
         </label>
 
         <div className="field-row">
           <label className="field">
-            <span>Decks</span>
+            <span>{t(lang, "home.decks")}</span>
             <NumberStepper
               value={config.deckCount}
               min={1}
@@ -64,7 +59,7 @@ export const Home = () => {
             />
           </label>
           <label className="field">
-            <span>Jokers / deck</span>
+            <span>{t(lang, "home.jokersPerDeck")}</span>
             <NumberStepper
               value={config.jokersPerDeck}
               min={0}
@@ -76,22 +71,22 @@ export const Home = () => {
 
         <div className="field-row">
           <label className="field">
-            <span>Shuffle</span>
+            <span>{t(lang, "home.shuffle")}</span>
             <select
               value={config.shuffle}
               onChange={(e) =>
                 patch({ shuffle: e.target.value as TableConfig["shuffle"] })
               }
             >
-              {shuffleOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
+              {shuffleKinds.map((kind) => (
+                <option key={kind} value={kind}>
+                  {t(lang, `home.shuffle.${kind}`)}
                 </option>
               ))}
             </select>
           </label>
           <label className="field">
-            <span>Passes</span>
+            <span>{t(lang, "home.passes")}</span>
             <NumberStepper
               value={config.shufflePasses}
               min={1}
@@ -102,7 +97,7 @@ export const Home = () => {
         </div>
 
         <label className="field">
-          <span>Cards dealt per player</span>
+          <span>{t(lang, "home.dealPerPlayer")}</span>
           <NumberStepper
             value={config.dealPerPlayer}
             min={0}
@@ -118,7 +113,7 @@ export const Home = () => {
               checked={config.stockPile}
               onChange={(e) => patch({ stockPile: e.target.checked })}
             />
-            <span>Stock pile (draw cards)</span>
+            <span>{t(lang, "home.stockPile")}</span>
           </label>
           <label className="toggle">
             <input
@@ -126,7 +121,7 @@ export const Home = () => {
               checked={config.burnPile}
               onChange={(e) => patch({ burnPile: e.target.checked })}
             />
-            <span>Burn pile (discard)</span>
+            <span>{t(lang, "home.burnPile")}</span>
           </label>
           <label className="toggle">
             <input
@@ -134,19 +129,16 @@ export const Home = () => {
               checked={config.playFaceUp}
               onChange={(e) => patch({ playFaceUp: e.target.checked })}
             />
-            <span>Play cards face up</span>
+            <span>{t(lang, "home.playFaceUp")}</span>
           </label>
         </div>
 
         <button className="btn btn-primary btn-big" onClick={create} disabled={creating}>
-          {creating ? "Creating…" : "Create table"}
+          {creating ? t(lang, "home.creating") : t(lang, "home.create")}
         </button>
       </div>
 
-      <p className="hint">
-        Open the table on a TV or tablet in the middle, then everyone joins by
-        scanning the QR code with their phone.
-      </p>
+      <p className="hint">{t(lang, "home.hint")}</p>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { tableConfig } from "./schema";
+import { language, tableConfig } from "./schema";
 import { deal, prepareDeck } from "./lib/deck";
 import { circlePosition } from "./lib/layout";
 import { clearAll } from "./events";
@@ -10,6 +10,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     config: tableConfig,
+    language: v.optional(language),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("tables", {
@@ -17,7 +18,15 @@ export const create = mutation({
       status: "lobby",
       config: args.config,
       round: 0,
+      language: args.language ?? "en",
     });
+  },
+});
+
+export const setLanguage = mutation({
+  args: { tableId: v.id("tables"), language },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.tableId, { language: args.language });
   },
 });
 

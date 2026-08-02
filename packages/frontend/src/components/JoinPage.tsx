@@ -3,6 +3,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { api } from "@backend/convex/_generated/api";
 import { convex, convexQuery } from "../convex";
 import { navigate } from "../route";
+import { detectLanguage, t } from "../i18n";
 import { storedPlayerKey, type TableId } from "../model";
 
 export const JoinPage = ({
@@ -25,7 +26,10 @@ export const JoinPage = ({
     try {
       const playerId = await convex.mutation(api.players.join, {
         tableId,
-        name: joinName.trim() === "" ? "Player" : joinName.trim(),
+        name:
+          joinName.trim() === ""
+            ? t(table?.language ?? detectLanguage(), "join.defaultPlayerName")
+            : joinName.trim(),
       });
       localStorage.setItem(storedPlayerKey(tableId), playerId);
       navigate(`/play/${tableId}/${playerId}`);
@@ -45,23 +49,25 @@ export const JoinPage = ({
   }, []);
 
   if (table === undefined) {
-    return <div className="page center">Loading table…</div>;
+    return <div className="page center">{t(detectLanguage(), "table.loading")}</div>;
   }
   if (table === null) {
-    return <div className="page center">This table no longer exists.</div>;
+    return <div className="page center">{t(detectLanguage(), "table.gone")}</div>;
   }
+
+  const lang = table.language ?? "en";
 
   return (
     <div className="page join-page">
       <h1 className="app-title">🃏 {table.name}</h1>
       <div className="panel">
         <label className="field">
-          <span>Your name</span>
+          <span>{t(lang, "join.yourName")}</span>
           <input
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
+            placeholder={t(lang, "join.yourName")}
             onKeyDown={(e) => {
               if (e.key === "Enter") void join(name);
             }}
@@ -72,14 +78,14 @@ export const JoinPage = ({
           disabled={joining}
           onClick={() => void join(name)}
         >
-          {joining ? "Joining…" : "Join table"}
+          {joining ? t(lang, "join.joining") : t(lang, "join.join")}
         </button>
         {existing !== null && (
           <button
             className="btn btn-big"
             onClick={() => navigate(`/play/${tableId}/${existing}`)}
           >
-            Continue previous session
+            {t(lang, "join.continue")}
           </button>
         )}
       </div>

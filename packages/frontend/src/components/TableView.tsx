@@ -5,6 +5,7 @@ import { convexQuery, run } from "../convex";
 import { absoluteLink } from "../route";
 import { CardView } from "./CardView";
 import { QRCode } from "./QRCode";
+import { detectLanguage, t } from "../i18n";
 import type { Card, CardId, Player, PlayerId, TableId } from "../model";
 
 const CARD_WIDTH_FRACTION = 0.07;
@@ -99,12 +100,13 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   }, [events, players, table]);
 
   if (table === undefined || players === undefined || cards === undefined) {
-    return <div className="page center">Loading table…</div>;
+    return <div className="page center">{t(detectLanguage(), "table.loading")}</div>;
   }
   if (table === null) {
-    return <div className="page center">This table no longer exists.</div>;
+    return <div className="page center">{t(detectLanguage(), "table.gone")}</div>;
   }
 
+  const lang = table.language ?? "en";
   const joinLink = absoluteLink(`/join/${tableId}`);
   const inLobby = table.status === "lobby";
 
@@ -188,14 +190,16 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
             onClick={() => void run(api.tables.startRound, { tableId })}
             disabled={players.length === 0}
           >
-            {inLobby ? "Start round" : `New round (${table.round})`}
+            {inLobby
+              ? t(lang, "table.startRound")
+              : t(lang, "table.newRound", { round: table.round })}
           </button>
           {table.config.burnPile && !inLobby && (
             <button
               className="btn"
               onClick={() => void run(api.tables.gatherBoard, { tableId, to: "burn" })}
             >
-              Gather → burn
+              {t(lang, "table.gatherBurn")}
             </button>
           )}
           {table.config.stockPile && !inLobby && (
@@ -203,17 +207,28 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               className="btn"
               onClick={() => void run(api.tables.gatherBoard, { tableId, to: "stock" })}
             >
-              Gather → stock
+              {t(lang, "table.gatherStock")}
             </button>
           )}
           <button
             className="btn"
             onClick={() => void run(api.players.arrangeCircle, { tableId })}
           >
-            Circle
+            {t(lang, "table.circle")}
           </button>
           <button className="btn" onClick={() => setShowQr((s) => !s)}>
             QR
+          </button>
+          <button
+            className="btn"
+            onClick={() =>
+              void run(api.tables.setLanguage, {
+                tableId,
+                language: lang === "en" ? "nl" : "en",
+              })
+            }
+          >
+            🌐 {lang.toUpperCase()}
           </button>
         </div>
       </header>
@@ -229,7 +244,9 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                 ) : (
                   <div className="pile-empty" />
                 )}
-                <span className="pile-label">Stock · {cards.stockCount}</span>
+                <span className="pile-label">
+                  {t(lang, "table.stock")} · {cards.stockCount}
+                </span>
               </div>
             )}
             {table.config.burnPile && (
@@ -244,7 +261,9 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                 ) : (
                   <div className="pile-empty" />
                 )}
-                <span className="pile-label">Burn · {cards.burnCount}</span>
+                <span className="pile-label">
+                  {t(lang, "table.burn")} · {cards.burnCount}
+                </span>
               </div>
             )}
           </div>
@@ -319,13 +338,13 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
       {(inLobby || showQr) && (
         <div className="lobby-overlay" onClick={() => !inLobby && setShowQr(false)}>
           <div className="lobby-panel" onClick={(e) => e.stopPropagation()}>
-            <h2>Scan to join</h2>
+            <h2>{t(lang, "table.scanToJoin")}</h2>
             <QRCode text={joinLink} size={240} />
             <a className="join-link" href={joinLink} target="_blank" rel="noreferrer">
               {joinLink}
             </a>
             <div className="lobby-players">
-              {players.length === 0 && <p>Waiting for players…</p>}
+              {players.length === 0 && <p>{t(lang, "table.waitingForPlayers")}</p>}
               {players.map((p: Player) => (
                 <span key={p._id} className="lobby-player" style={{ background: p.color }}>
                   {p.name}
@@ -338,11 +357,11 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                 disabled={players.length === 0}
                 onClick={() => void run(api.tables.startRound, { tableId })}
               >
-                Deal & start
+                {t(lang, "table.dealAndStart")}
               </button>
             ) : (
               <button className="btn btn-big" onClick={() => setShowQr(false)}>
-                Close
+                {t(lang, "table.close")}
               </button>
             )}
           </div>

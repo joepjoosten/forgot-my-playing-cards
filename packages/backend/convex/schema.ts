@@ -25,12 +25,16 @@ export const tableConfig = v.object({
   playFaceUp: v.boolean(),
 });
 
+export const language = v.union(v.literal("en"), v.literal("nl"));
+
 export default defineSchema({
   tables: defineTable({
     name: v.string(),
     status: v.union(v.literal("lobby"), v.literal("playing")),
     config: tableConfig,
     round: v.number(),
+    // Optional so tables created before this field existed stay valid.
+    language: v.optional(language),
   }),
 
   players: defineTable({

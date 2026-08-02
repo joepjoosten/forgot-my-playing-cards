@@ -3,6 +3,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { api } from "@backend/convex/_generated/api";
 import { convexQuery, run } from "../convex";
 import { CardView } from "./CardView";
+import { detectLanguage, t } from "../i18n";
 import type { Card, CardId, PlayerId, TableId } from "../model";
 
 const THROW_DISTANCE = 90;
@@ -38,18 +39,21 @@ export const PlayerView = ({
   const stripRef = useRef<HTMLDivElement>(null);
 
   if (table === undefined || player === undefined || hand === undefined) {
-    return <div className="page center">Loading your hand…</div>;
+    return <div className="page center">{t(detectLanguage(), "player.loading")}</div>;
   }
   if (table === null || player === null) {
+    const lang = table?.language ?? detectLanguage();
     return (
       <div className="page center">
-        You are no longer at this table.
+        {t(lang, "player.notAtTable")}
         <a className="btn btn-big" href={`#/join/${tableId}`}>
-          Join again
+          {t(lang, "player.joinAgain")}
         </a>
       </div>
     );
   }
+
+  const lang = table.language ?? "en";
 
   // While dragging we show our local order; otherwise the server's order.
   // Cards that just left the hand stay hidden until the server confirms.
@@ -180,7 +184,9 @@ export const PlayerView = ({
           {player.name}
         </span>
         <span className="player-table-name">{table.name}</span>
-        <span className="player-hand-count">{hand.length} cards</span>
+        <span className="player-hand-count">
+          {t(lang, "player.cards", { count: hand.length })}
+        </span>
       </header>
 
       <div className="player-actions">
@@ -190,7 +196,7 @@ export const PlayerView = ({
             disabled={stockCount === 0}
             onClick={() => void run(api.cards.draw, { playerId })}
           >
-            Draw ({stockCount})
+            {t(lang, "player.draw", { count: stockCount })}
           </button>
         )}
         {table.config.burnPile && (
@@ -199,7 +205,7 @@ export const PlayerView = ({
             disabled={burnTop === null}
             onClick={() => void run(api.cards.takeBurn, { playerId })}
           >
-            Take burn
+            {t(lang, "player.takeBurn")}
             {burnTop !== null && burnTop.faceUp ? ` (${burnTop.rank}${burnTop.suit})` : ""}
           </button>
         )}
@@ -207,13 +213,11 @@ export const PlayerView = ({
 
       {table.status === "lobby" ? (
         <div className="player-waiting">
-          <p>You're in! Waiting for the table to deal…</p>
+          <p>{t(lang, "player.waiting")}</p>
         </div>
       ) : (
         <>
-          <p className="player-hint">
-            Drag sideways to sort · flick a card up to throw it on the table
-          </p>
+          <p className="player-hint">{t(lang, "player.hint")}</p>
           <div className="hand-strip" ref={stripRef}>
             {orderedHand.map((card, index) => {
               const isDragged = drag !== null && drag.cardId === card._id;
@@ -257,7 +261,7 @@ export const PlayerView = ({
               );
             })}
             {orderedHand.length === 0 && (
-              <p className="hand-empty">No cards in hand</p>
+              <p className="hand-empty">{t(lang, "player.emptyHand")}</p>
             )}
           </div>
 
@@ -267,13 +271,13 @@ export const PlayerView = ({
                 className="btn btn-primary btn-big"
                 onClick={() => playCard(selected, table.config.playFaceUp)}
               >
-                Play
+                {t(lang, "player.play")}
               </button>
               <button
                 className="btn btn-big"
                 onClick={() => playCard(selected, false)}
               >
-                Play face down
+                {t(lang, "player.playFaceDown")}
               </button>
               {table.config.burnPile && (
                 <button
@@ -285,7 +289,7 @@ export const PlayerView = ({
                     setSelected(null);
                   }}
                 >
-                  Burn
+                  {t(lang, "player.burn")}
                 </button>
               )}
               <button className="btn btn-big" onClick={() => setSelected(null)}>

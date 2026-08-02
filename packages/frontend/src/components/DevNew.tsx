@@ -3,6 +3,7 @@ import { api } from "@backend/convex/_generated/api";
 import { convex } from "../convex";
 import { navigate } from "../route";
 import { defaultConfig } from "../model";
+import { detectLanguage, t } from "../i18n";
 
 /**
  * Used by dev.html: creates a fresh table, tells the parent window about it
@@ -18,6 +19,7 @@ export const DevNew = () => {
       .mutation(api.tables.create, {
         name: "Dev table",
         config: { ...defaultConfig, dealPerPlayer: 7 },
+        language: detectLanguage(),
       })
       .then((tableId) => {
         window.parent?.postMessage({ type: "fmpc:table-created", tableId }, "*");
@@ -26,5 +28,5 @@ export const DevNew = () => {
       .catch(console.error);
   }, []);
 
-  return <div className="page center">Creating dev table…</div>;
+  return <div className="page center">{t(detectLanguage(), "dev.creating")}</div>;
 };
