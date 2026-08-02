@@ -495,7 +495,9 @@ select {
 .hand-card {
   position: absolute;
   bottom: 16px;
-  transition: left 0.15s ease;
+  transition:
+    left 0.15s ease,
+    transform 0.15s ease;
   touch-action: none;
 }
 

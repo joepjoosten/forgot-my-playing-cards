@@ -225,12 +225,16 @@ export const PlayerView = ({
                     isThrowing ? " hand-card-throwing" : ""
                   }`}
                   style={{
-                    // The dragged card stays anchored at its start slot so it
-                    // tracks the finger; only the neighbours change slots.
-                    left: 12 + (isDragged ? drag.startIndex : index) * slot,
+                    // While dragging, the full horizontal position lives in
+                    // `left` (transitions off) so that on release the card
+                    // animates from under the finger to its final slot —
+                    // never via its old slot.
+                    left: isDragged
+                      ? 12 + drag.startIndex * slot + drag.dx
+                      : 12 + index * slot,
                     zIndex: isDragged ? 100 : index,
                     transform: isDragged
-                      ? `translate(${drag.dx}px, ${Math.min(0, drag.dy)}px) rotate(${
+                      ? `translateY(${Math.min(0, drag.dy)}px) rotate(${
                           drag.dx / 20
                         }deg)`
                       : selected === card._id
