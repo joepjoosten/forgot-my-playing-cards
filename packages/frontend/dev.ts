@@ -46,5 +46,7 @@ window.addEventListener("message", (event: MessageEvent) => {
 
 addButton.addEventListener("click", addPlayer);
 
-// The dev-new route creates a table and posts `fmpc:table-created` back.
-tableFrame.src = appUrl("/dev-new");
+// The table iframe starts on the normal creation form (dev flag makes it
+// post `fmpc:table-created` back up); configure the table there and the
+// player iframes spawn on create.
+tableFrame.src = appUrl("/?dev=1");

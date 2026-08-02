@@ -78,9 +78,6 @@ const en = {
   "player.play": "Play",
   "player.playFaceDown": "Play face down",
   "player.burn": "Burn",
-
-  // Dev
-  "dev.creating": "Creating dev table…",
 } as const;
 
 const nl: Record<MessageKey, string> = {
@@ -152,9 +149,6 @@ const nl: Record<MessageKey, string> = {
   "player.play": "Spelen",
   "player.playFaceDown": "Gesloten spelen",
   "player.burn": "Afleggen",
-
-  // Dev
-  "dev.creating": "Dev-tafel aanmaken…",
 };
 
 export type MessageKey = keyof typeof en;

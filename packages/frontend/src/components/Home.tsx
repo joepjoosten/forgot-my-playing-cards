@@ -7,7 +7,7 @@ import { detectLanguage, languages, t, type Language } from "../i18n";
 
 const shuffleKinds = ["riffle", "overhand", "fisher-yates", "cut", "none"] as const;
 
-export const Home = () => {
+export const Home = ({ params }: { params?: URLSearchParams }) => {
   // The creating client's browser language is the starting point; the
   // switcher below changes this screen live and becomes the table language.
   const [lang, setLang] = useState(detectLanguage);
@@ -35,6 +35,11 @@ export const Home = () => {
         config,
         language: lang,
       });
+      // dev.html hosts this form in an iframe (#/?dev=1) and spawns
+      // player iframes once it learns the new table's id.
+      if (params?.get("dev") === "1") {
+        window.parent?.postMessage({ type: "fmpc:table-created", tableId }, "*");
+      }
       navigate(`/table/${tableId}`);
     } catch (error) {
       console.error(error);

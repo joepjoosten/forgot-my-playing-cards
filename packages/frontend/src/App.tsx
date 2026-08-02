@@ -1,7 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { routeAtom } from "./route";
 import { Home } from "./components/Home";
-import { DevNew } from "./components/DevNew";
 import { TableView } from "./components/TableView";
 import { JoinPage } from "./components/JoinPage";
 import { PlayerView } from "./components/PlayerView";
@@ -12,9 +11,7 @@ export const App = () => {
 
   switch (route.kind) {
     case "home":
-      return <Home />;
-    case "dev-new":
-      return <DevNew />;
+      return <Home params={route.params} />;
     case "table":
       return <TableView tableId={route.tableId as TableId} />;
     case "join":
