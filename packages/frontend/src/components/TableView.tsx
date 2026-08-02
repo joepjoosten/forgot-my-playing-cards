@@ -10,6 +10,12 @@ import type { Card, CardId, Player, PlayerId, TableId } from "../model";
 
 const CARD_WIDTH_FRACTION = 0.07;
 
+/** Pile cards grow with the board so they read well on a TV. */
+const pileWidth = (boardWidth: number): number =>
+  Math.max(64, Math.min(150, boardWidth * 0.085));
+
+const pileGap = (boardWidth: number): number => pileWidth(boardWidth) * 0.375;
+
 interface Drag {
   kind: "card" | "player";
   id: string;
@@ -29,7 +35,15 @@ interface Flight {
 }
 
 /** A card flying across the board (pile ↔ player). */
-const FlyingCard = ({ flight, fourColor }: { flight: Flight; fourColor: boolean }) => {
+const FlyingCard = ({
+  flight,
+  fourColor,
+  width,
+}: {
+  flight: Flight;
+  fourColor: boolean;
+  width: number;
+}) => {
   const [pos, setPos] = useState(flight.from);
   const [landed, setLanded] = useState(false);
 
@@ -54,7 +68,7 @@ const FlyingCard = ({ flight, fourColor }: { flight: Flight; fourColor: boolean 
         rank={flight.face?.rank ?? ""}
         suit={flight.face?.suit ?? ""}
         faceUp={flight.face?.faceUp ?? false}
-        width={52}
+        width={width}
         fourColor={fourColor}
       />
     </div>
@@ -67,7 +81,20 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   const cards = useAtomValue(convexQuery(api.cards.forTable, { tableId }));
   const events = useAtomValue(convexQuery(api.events.recent, { tableId }));
 
-  const boardRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const resizeObserver = useRef<ResizeObserver | null>(null);
+  const [boardWidth, setBoardWidth] = useState(0);
+  const attachBoard = (el: HTMLDivElement | null) => {
+    boardRef.current = el;
+    resizeObserver.current?.disconnect();
+    resizeObserver.current = null;
+    if (el !== null) {
+      const observer = new ResizeObserver(() => setBoardWidth(el.clientWidth));
+      observer.observe(el);
+      resizeObserver.current = observer;
+      setBoardWidth(el.clientWidth);
+    }
+  };
   const [drag, setDrag] = useState<Drag | null>(null);
   // Dropped positions we still render locally until the server echoes the
   // move back — otherwise the item briefly jumps to its stale position.
@@ -97,7 +124,8 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
       // Piles sit centred on the board, stock left of burn.
       const pilePos = (which: "stock" | "burn") => {
         const both = table.config.stockPile && table.config.burnPile;
-        const offset = both ? (which === "stock" ? -44 : 44) : 0;
+        const half = (pileWidth(rect.width) + pileGap(rect.width)) / 2;
+        const offset = both ? (which === "stock" ? -half : half) : 0;
         return { x: rect.width / 2 + offset, y: rect.height / 2 };
       };
       const playerPos = { x: target.x * rect.width, y: target.y * rect.height };
@@ -290,17 +318,26 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
       </header>
 
       <div className="board-wrap">
-        <div className="board" ref={boardRef}>
+        <div className="board" ref={attachBoard}>
           {/* piles */}
-          <div className="piles">
+          <div className="piles" style={{ gap: pileGap(boardWidth) }}>
             {table.config.stockPile && (
               <div className="pile">
                 {cards.stockCount > 0 ? (
-                  <CardView rank="" suit="" faceUp={false} width={64} />
+                  <CardView rank="" suit="" faceUp={false} width={pileWidth(boardWidth)} />
                 ) : (
-                  <div className="pile-empty" />
+                  <div
+                    className="pile-empty"
+                    style={{
+                      width: pileWidth(boardWidth),
+                      height: pileWidth(boardWidth) * 1.4,
+                    }}
+                  />
                 )}
-                <span className="pile-label">
+                <span
+                  className="pile-label"
+                  style={{ fontSize: Math.max(12, pileWidth(boardWidth) * 0.17) }}
+                >
                   {t(lang, "table.stock")} · {cards.stockCount}
                 </span>
               </div>
@@ -312,13 +349,22 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                     rank={cards.burnTop.rank}
                     suit={cards.burnTop.suit}
                     faceUp={cards.burnTop.faceUp}
-                    width={64}
+                    width={pileWidth(boardWidth)}
                     fourColor={fourColor}
                   />
                 ) : (
-                  <div className="pile-empty" />
+                  <div
+                    className="pile-empty"
+                    style={{
+                      width: pileWidth(boardWidth),
+                      height: pileWidth(boardWidth) * 1.4,
+                    }}
+                  />
                 )}
-                <span className="pile-label">
+                <span
+                  className="pile-label"
+                  style={{ fontSize: Math.max(12, pileWidth(boardWidth) * 0.17) }}
+                >
                   {t(lang, "table.burn")} · {cards.burnCount}
                 </span>
               </div>
@@ -353,10 +399,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                   rank={card.rank}
                   suit={card.suit}
                   faceUp={card.faceUp}
-                  width={Math.max(
-                    48,
-                    (boardRef.current?.clientWidth ?? 800) * CARD_WIDTH_FRACTION,
-                  )}
+                  width={Math.max(48, (boardWidth || 800) * CARD_WIDTH_FRACTION)}
                   fourColor={fourColor}
                 />
               </div>
@@ -373,6 +416,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               <FlyingCard
                 key={flight.id}
                 fourColor={fourColor}
+                width={Math.max(52, (boardWidth || 800) * 0.06)}
                 flight={
                   boardCard === undefined
                     ? flight

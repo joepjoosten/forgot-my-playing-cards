@@ -318,8 +318,6 @@ select {
 }
 
 .pile-empty {
-  width: 64px;
-  height: 90px;
   border-radius: 8px;
   border: 2px dashed rgba(255, 255, 255, 0.35);
 }
