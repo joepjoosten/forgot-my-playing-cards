@@ -5,6 +5,7 @@ import { convexQuery, run } from "../convex";
 import { absoluteLink } from "../route";
 import { CardView } from "./CardView";
 import { QRCode } from "./QRCode";
+import { fullscreenAvailable, toggleFullscreen } from "../fullscreen";
 import { detectLanguage, languages, t, type Language } from "../i18n";
 import type { Card, CardId, Player, PlayerId, TableId } from "../model";
 
@@ -298,6 +299,15 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           <button className="btn" onClick={() => setShowQr((s) => !s)}>
             QR
           </button>
+          {fullscreenAvailable() && (
+            <button
+              className="btn btn-icon"
+              aria-label={t(lang, "app.fullscreen")}
+              onClick={toggleFullscreen}
+            >
+              ⛶
+            </button>
+          )}
           <select
             className="btn lang-select"
             value={lang}

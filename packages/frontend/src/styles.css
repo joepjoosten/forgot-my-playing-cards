@@ -143,6 +143,13 @@ select {
   font-family: inherit;
 }
 
+.btn-icon {
+  min-width: 44px;
+  font-size: 20px;
+  line-height: 1;
+  padding: 8px;
+}
+
 .btn-primary {
   background: #e6c53c;
   border-color: #e6c53c;
@@ -556,6 +563,41 @@ select {
 .card-action-bar .btn {
   flex: 1;
   white-space: nowrap;
+}
+
+/* Small phones in landscape: every vertical pixel counts. */
+@media (max-height: 480px) and (orientation: landscape) {
+  .player-page {
+    padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+    gap: 6px;
+  }
+
+  .player-header {
+    padding-bottom: 4px;
+    border-bottom-width: 2px;
+  }
+
+  .player-badge {
+    padding: 4px 10px;
+  }
+
+  .player-hint {
+    display: none;
+  }
+
+  .player-actions .btn,
+  .card-action-bar .btn {
+    min-height: 40px;
+    font-size: 15px;
+  }
+
+  .hand-strip {
+    min-height: 110px;
+  }
+
+  .hand-card {
+    bottom: 6px;
+  }
 }
 
 /* ---------- misc ---------- */

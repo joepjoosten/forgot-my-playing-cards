@@ -3,6 +3,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { api } from "@backend/convex/_generated/api";
 import { convexQuery, run } from "../convex";
 import { CardView } from "./CardView";
+import { fullscreenAvailable, toggleFullscreen } from "../fullscreen";
 import { detectLanguage, t } from "../i18n";
 import type { Card, CardId, PlayerId, TableId } from "../model";
 
@@ -197,6 +198,15 @@ export const PlayerView = ({
         <span className="player-hand-count">
           {t(lang, "player.cards", { count: hand.length })}
         </span>
+        {fullscreenAvailable() && (
+          <button
+            className="btn btn-icon"
+            aria-label={t(lang, "app.fullscreen")}
+            onClick={toggleFullscreen}
+          >
+            ⛶
+          </button>
+        )}
       </header>
 
       <div className="player-actions">

@@ -11,6 +11,9 @@ export const detectLanguage = (): Language =>
   navigator.language?.toLowerCase().startsWith("nl") ? "nl" : "en";
 
 const en = {
+  // App
+  "app.fullscreen": "Full screen",
+
   // Home
   "home.language": "Language",
   "home.subtitle":
@@ -81,6 +84,9 @@ const en = {
 } as const;
 
 const nl: Record<MessageKey, string> = {
+  // App
+  "app.fullscreen": "Volledig scherm",
+
   // Home
   "home.language": "Taal",
   "home.subtitle":
