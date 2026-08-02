@@ -3,13 +3,9 @@ import { api } from "@backend/convex/_generated/api";
 import { convex } from "../convex";
 import { navigate } from "../route";
 import { defaultConfig, type TableConfig } from "../model";
-import { detectLanguage, t, type Language } from "../i18n";
+import { detectLanguage, languages, t, type Language } from "../i18n";
 
 const shuffleKinds = ["riffle", "overhand", "fisher-yates", "cut", "none"] as const;
-const languages: ReadonlyArray<{ value: Language; label: string }> = [
-  { value: "en", label: "English" },
-  { value: "nl", label: "Nederlands" },
-];
 
 export const Home = () => {
   // The creating client's browser language is the starting point; the
@@ -52,21 +48,19 @@ export const Home = () => {
       <p className="app-subtitle">{t(lang, "home.subtitle")}</p>
 
       <div className="panel">
-        <div className="field">
+        <label className="field">
           <span>🌐 {t(lang, "home.language")}</span>
-          <div className="segmented">
+          <select
+            value={lang}
+            onChange={(e) => switchLanguage(e.target.value as Language)}
+          >
             {languages.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`btn${lang === option.value ? " btn-primary" : ""}`}
-                onClick={() => switchLanguage(option.value)}
-              >
+              <option key={option.value} value={option.value}>
                 {option.label}
-              </button>
+              </option>
             ))}
-          </div>
-        </div>
+          </select>
+        </label>
 
         <label className="field">
           <span>{t(lang, "home.tableName")}</span>

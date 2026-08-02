@@ -5,7 +5,7 @@ import { convexQuery, run } from "../convex";
 import { absoluteLink } from "../route";
 import { CardView } from "./CardView";
 import { QRCode } from "./QRCode";
-import { detectLanguage, t } from "../i18n";
+import { detectLanguage, languages, t, type Language } from "../i18n";
 import type { Card, CardId, Player, PlayerId, TableId } from "../model";
 
 const CARD_WIDTH_FRACTION = 0.07;
@@ -219,17 +219,22 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           <button className="btn" onClick={() => setShowQr((s) => !s)}>
             QR
           </button>
-          <button
-            className="btn"
-            onClick={() =>
+          <select
+            className="btn lang-select"
+            value={lang}
+            onChange={(e) =>
               void run(api.tables.setLanguage, {
                 tableId,
-                language: lang === "en" ? "nl" : "en",
+                language: e.target.value as Language,
               })
             }
           >
-            🌐 {lang.toUpperCase()}
-          </button>
+            {languages.map((option) => (
+              <option key={option.value} value={option.value}>
+                🌐 {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </header>
 

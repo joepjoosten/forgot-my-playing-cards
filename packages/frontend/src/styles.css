@@ -137,6 +137,12 @@ select {
   opacity: 0.4;
 }
 
+.lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+}
+
 .btn-primary {
   background: #e6c53c;
   border-color: #e6c53c;
@@ -147,15 +153,6 @@ select {
 .btn-big {
   min-height: 52px;
   font-size: 18px;
-}
-
-.segmented {
-  display: flex;
-  gap: 8px;
-}
-
-.segmented .btn {
-  flex: 1;
 }
 
 .stepper {

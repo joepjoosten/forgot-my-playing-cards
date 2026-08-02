@@ -1,5 +1,11 @@
 export type Language = "en" | "nl";
 
+/** All selectable languages, labelled in their own language. */
+export const languages: ReadonlyArray<{ value: Language; label: string }> = [
+  { value: "en", label: "English" },
+  { value: "nl", label: "Nederlands" },
+];
+
 /** The language advertised by this browser, mapped to a supported one. */
 export const detectLanguage = (): Language =>
   navigator.language?.toLowerCase().startsWith("nl") ? "nl" : "en";
