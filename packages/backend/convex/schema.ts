@@ -43,6 +43,14 @@ export default defineSchema({
     y: v.number(),
   }).index("by_table", ["tableId"]),
 
+  /** Short-lived notifications so the table can animate what just
+   * happened (e.g. a card flying from the stock pile to a player). */
+  events: defineTable({
+    tableId: v.id("tables"),
+    kind: v.union(v.literal("draw"), v.literal("takeBurn")),
+    playerId: v.id("players"),
+  }).index("by_table", ["tableId"]),
+
   cards: defineTable({
     tableId: v.id("tables"),
     deck: v.number(),

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "@effect/atom-react";
 import { api } from "@backend/convex/_generated/api";
 import { convexQuery, run } from "../convex";
@@ -17,10 +17,44 @@ interface Drag {
   moved: boolean;
 }
 
+interface Flight {
+  id: string;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+}
+
+/** A card back flying across the board (e.g. stock pile → drawing player). */
+const FlyingCard = ({ flight }: { flight: Flight }) => {
+  const [pos, setPos] = useState(flight.from);
+  const [landed, setLanded] = useState(false);
+
+  useEffect(() => {
+    // Two frames so the starting position is painted before transitioning.
+    const raf = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setPos(flight.to);
+        setLanded(true);
+      }),
+    );
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      className={`fly-card${landed ? " fly-card-landed" : ""}`}
+      style={{ left: pos.x, top: pos.y }}
+    >
+      <CardView rank="" suit="" faceUp={false} width={52} />
+    </div>
+  );
+};
+
 export const TableView = ({ tableId }: { tableId: TableId }) => {
   const table = useAtomValue(convexQuery(api.tables.get, { tableId }));
   const players = useAtomValue(convexQuery(api.players.list, { tableId }));
   const cards = useAtomValue(convexQuery(api.cards.forTable, { tableId }));
+  const events = useAtomValue(convexQuery(api.events.recent, { tableId }));
 
   const boardRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -28,6 +62,41 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   // move back — otherwise the item briefly jumps to its stale position.
   const [pending, setPending] = useState<Record<string, { x: number; y: number }>>({});
   const [showQr, setShowQr] = useState(false);
+  const [flights, setFlights] = useState<Array<Flight>>([]);
+  // null until the first events payload arrives — everything already in it
+  // predates this screen, so it is marked seen without animating.
+  const seenEvents = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (events === undefined) return;
+    if (seenEvents.current === null) {
+      seenEvents.current = new Set(events.map((e) => e._id));
+      return;
+    }
+    const seen = seenEvents.current;
+    const rect = boardRef.current?.getBoundingClientRect();
+    for (const event of events) {
+      if (seen.has(event._id)) continue;
+      seen.add(event._id);
+      if (rect === undefined || players === undefined || table === null || table === undefined) continue;
+      if (Date.now() - event._creationTime > 10_000) continue;
+      const target = players.find((p) => p._id === event.playerId);
+      if (target === undefined) continue;
+
+      // Pile origin: piles sit centred on the board, stock left of burn.
+      const bothPiles = table.config.stockPile && table.config.burnPile;
+      const offset = bothPiles ? (event.kind === "draw" ? -44 : 44) : 0;
+      const flight: Flight = {
+        id: event._id,
+        from: { x: rect.width / 2 + offset, y: rect.height / 2 },
+        to: { x: target.x * rect.width, y: target.y * rect.height },
+      };
+      setFlights((current) => [...current, flight]);
+      setTimeout(() => {
+        setFlights((current) => current.filter((f) => f.id !== flight.id));
+      }, 1000);
+    }
+  }, [events, players, table]);
 
   if (table === undefined || players === undefined || cards === undefined) {
     return <div className="page center">Loading table…</div>;
@@ -214,6 +283,11 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               </div>
             );
           })}
+
+          {/* draw / take-burn animations */}
+          {flights.map((flight) => (
+            <FlyingCard key={flight.id} flight={flight} />
+          ))}
 
           {/* players */}
           {players.map((player: Player) => {

@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { tableConfig } from "./schema";
 import { deal, prepareDeck } from "./lib/deck";
 import { circlePosition } from "./lib/layout";
+import { clearAll } from "./events";
 
 export const create = mutation({
   args: {
@@ -52,6 +53,8 @@ export const startRound = mutation({
         .withIndex("by_table", (q) => q.eq("tableId", args.tableId))
         .collect()
     ).sort((a, b) => a.seat - b.seat);
+
+    await clearAll(ctx, args.tableId);
 
     // Remove all cards from the previous round.
     const oldCards = await ctx.db

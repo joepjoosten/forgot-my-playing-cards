@@ -9,6 +9,7 @@
  */
 
 import type * as cards from "../cards.js";
+import type * as events from "../events.js";
 import type * as lib_deck from "../lib/deck.js";
 import type * as lib_layout from "../lib/layout.js";
 import type * as players from "../players.js";
@@ -22,6 +23,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   cards: typeof cards;
+  events: typeof events;
   "lib/deck": typeof lib_deck;
   "lib/layout": typeof lib_layout;
   players: typeof players;

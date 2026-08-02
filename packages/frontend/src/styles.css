@@ -360,6 +360,23 @@ select {
   padding: 1px 8px;
 }
 
+.fly-card {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1500;
+  transition:
+    left 0.7s cubic-bezier(0.25, 0.6, 0.3, 1),
+    top 0.7s cubic-bezier(0.25, 0.6, 0.3, 1),
+    opacity 0.25s ease 0.55s,
+    scale 0.7s ease;
+}
+
+.fly-card-landed {
+  opacity: 0;
+  scale: 0.6;
+}
+
 .lobby-overlay {
   position: fixed;
   inset: 0;

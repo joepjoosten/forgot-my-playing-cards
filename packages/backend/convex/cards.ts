@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
+import { emit } from "./events";
 
 /**
  * Everything the table screen needs. Hand cards are only exposed as counts:
@@ -134,6 +135,7 @@ export const draw = mutation({
       order: end,
       faceUp: true,
     });
+    await emit(ctx, player.tableId, "draw", args.playerId);
     return top._id;
   },
 });
@@ -166,6 +168,7 @@ export const takeBurn = mutation({
       order: end,
       faceUp: true,
     });
+    await emit(ctx, player.tableId, "takeBurn", args.playerId);
     return top._id;
   },
 });
