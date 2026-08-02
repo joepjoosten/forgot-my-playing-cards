@@ -6,6 +6,7 @@ export const detectLanguage = (): Language =>
 
 const en = {
   // Home
+  "home.language": "Language",
   "home.subtitle":
     "A shared card table for any game — the table handles decks, shuffling and dealing, you bring the rules.",
   "home.tableName": "Table name",
@@ -72,6 +73,7 @@ const en = {
 
 const nl: Record<MessageKey, string> = {
   // Home
+  "home.language": "Taal",
   "home.subtitle":
     "Een gedeelde kaarttafel voor elk spel — de tafel regelt de stokken, het schudden en het delen, jij brengt de regels mee.",
   "home.tableName": "Tafelnaam",

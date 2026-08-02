@@ -3,19 +3,32 @@ import { api } from "@backend/convex/_generated/api";
 import { convex } from "../convex";
 import { navigate } from "../route";
 import { defaultConfig, type TableConfig } from "../model";
-import { detectLanguage, t } from "../i18n";
+import { detectLanguage, t, type Language } from "../i18n";
 
 const shuffleKinds = ["riffle", "overhand", "fisher-yates", "cut", "none"] as const;
+const languages: ReadonlyArray<{ value: Language; label: string }> = [
+  { value: "en", label: "English" },
+  { value: "nl", label: "Nederlands" },
+];
 
 export const Home = () => {
-  // No table exists yet, so the creating client's browser language decides.
-  const [lang] = useState(detectLanguage);
+  // The creating client's browser language is the starting point; the
+  // switcher below changes this screen live and becomes the table language.
+  const [lang, setLang] = useState(detectLanguage);
   const [name, setName] = useState(() => t(detectLanguage(), "home.defaultTableName"));
   const [config, setConfig] = useState<TableConfig>(defaultConfig);
   const [creating, setCreating] = useState(false);
 
   const patch = (partial: Partial<TableConfig>) =>
     setConfig((c) => ({ ...c, ...partial }));
+
+  const switchLanguage = (next: Language) => {
+    // Carry the untouched default table name over to the new language.
+    if (name === t(lang, "home.defaultTableName")) {
+      setName(t(next, "home.defaultTableName"));
+    }
+    setLang(next);
+  };
 
   const create = async () => {
     if (creating) return;
@@ -39,6 +52,22 @@ export const Home = () => {
       <p className="app-subtitle">{t(lang, "home.subtitle")}</p>
 
       <div className="panel">
+        <div className="field">
+          <span>🌐 {t(lang, "home.language")}</span>
+          <div className="segmented">
+            {languages.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`btn${lang === option.value ? " btn-primary" : ""}`}
+                onClick={() => switchLanguage(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <label className="field">
           <span>{t(lang, "home.tableName")}</span>
           <input

@@ -149,6 +149,15 @@ select {
   font-size: 18px;
 }
 
+.segmented {
+  display: flex;
+  gap: 8px;
+}
+
+.segmented .btn {
+  flex: 1;
+}
+
 .stepper {
   display: flex;
   align-items: center;
