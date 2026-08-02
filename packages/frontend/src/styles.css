@@ -565,6 +565,139 @@ select {
   white-space: nowrap;
 }
 
+/* ---------- join code ---------- */
+
+.panel-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.join-code-row {
+  display: flex;
+  gap: 10px;
+}
+
+.join-code-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 12px;
+  min-height: 52px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.92);
+  color: #222;
+}
+
+.join-error {
+  margin: 0;
+  color: #ffb0a6;
+  font-size: 14px;
+}
+
+.table-code {
+  font-weight: 800;
+  letter-spacing: 3px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+.lobby-code {
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.lobby-code strong {
+  letter-spacing: 4px;
+  color: #e6c53c;
+}
+
+/* ---------- read-only mini table on the phone ---------- */
+
+.mini-board {
+  position: relative;
+  flex-shrink: 0;
+  height: 34vh;
+  min-height: 150px;
+  border-radius: 16px;
+  border: 3px solid #5a3a1e;
+  background:
+    radial-gradient(circle at 50% 40%, #22945f 0%, #187347 60%, #115634 100%);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mini-piles {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 12px;
+}
+
+.mini-pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+}
+
+.mini-pile span {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 1px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.mini-pile-empty {
+  width: 34px;
+  height: 48px;
+  border-radius: 5px;
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+}
+
+.mini-card {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.mini-player {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 3px solid;
+  border-radius: 30px;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 500;
+}
+
+.mini-player-name {
+  font-size: 10px;
+  font-weight: 700;
+  max-width: 64px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-player-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: #101010;
+  border-radius: 8px;
+  padding: 0 5px;
+}
+
 /* Small phones in landscape: every vertical pixel counts. */
 @media (max-height: 480px) and (orientation: landscape) {
   .player-page {

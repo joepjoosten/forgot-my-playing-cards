@@ -41,7 +41,9 @@ export default defineSchema({
     round: v.number(),
     // Optional so tables created before this field existed stay valid.
     language: v.optional(language),
-  }),
+    // Short human-typeable join code (5 chars, unambiguous alphabet).
+    code: v.optional(v.string()),
+  }).index("by_code", ["code"]),
 
   players: defineTable({
     tableId: v.id("tables"),

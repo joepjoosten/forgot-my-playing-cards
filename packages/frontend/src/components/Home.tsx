@@ -14,6 +14,28 @@ export const Home = ({ params }: { params?: URLSearchParams }) => {
   const [name, setName] = useState(() => t(detectLanguage(), "home.defaultTableName"));
   const [config, setConfig] = useState<TableConfig>(defaultConfig);
   const [creating, setCreating] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joinError, setJoinError] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+
+  const joinByCode = async () => {
+    if (lookingUp || joinCode.trim() === "") return;
+    setLookingUp(true);
+    setJoinError(false);
+    try {
+      const found = await convex.query(api.tables.byCode, { code: joinCode });
+      if (found === null) {
+        setJoinError(true);
+      } else {
+        navigate(`/join/${found._id}`);
+      }
+    } catch (error) {
+      console.error(error);
+      setJoinError(true);
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   const patch = (partial: Partial<TableConfig>) =>
     setConfig((c) => ({ ...c, ...partial }));
@@ -51,6 +73,36 @@ export const Home = ({ params }: { params?: URLSearchParams }) => {
     <div className="page home-page">
       <h1 className="app-title">🃏 Forgot My Playing Cards</h1>
       <p className="app-subtitle">{t(lang, "home.subtitle")}</p>
+
+      <div className="panel">
+        <span className="panel-title">{t(lang, "home.joinTitle")}</span>
+        <div className="join-code-row">
+          <input
+            className="join-code-input"
+            value={joinCode}
+            onChange={(e) => {
+              setJoinCode(e.target.value.toUpperCase());
+              setJoinError(false);
+            }}
+            placeholder={t(lang, "home.joinCode")}
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={8}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void joinByCode();
+            }}
+          />
+          <button
+            className="btn btn-primary btn-big"
+            disabled={lookingUp || joinCode.trim() === ""}
+            onClick={() => void joinByCode()}
+          >
+            {t(lang, "home.joinGo")}
+          </button>
+        </div>
+        {joinError && <p className="join-error">{t(lang, "home.codeNotFound")}</p>}
+      </div>
 
       <div className="panel">
         <label className="field">

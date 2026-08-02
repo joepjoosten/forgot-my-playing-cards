@@ -3,9 +3,11 @@ import { useAtomValue } from "@effect/atom-react";
 import { api } from "@backend/convex/_generated/api";
 import { convexQuery, run } from "../convex";
 import { CardView } from "./CardView";
+import { MiniTable } from "./MiniTable";
 import { fullscreenAvailable, toggleFullscreen } from "../fullscreen";
 import { detectLanguage, t } from "../i18n";
-import type { Card, CardId, PlayerId, TableId } from "../model";
+import { navigate } from "../route";
+import { storedPlayerKey, type Card, type CardId, type PlayerId, type TableId } from "../model";
 
 const THROW_DISTANCE = 90;
 
@@ -31,7 +33,9 @@ export const PlayerView = ({
   const player = useAtomValue(convexQuery(api.players.get, { playerId }));
   const hand = useAtomValue(convexQuery(api.cards.hand, { playerId }));
   const piles = useAtomValue(convexQuery(api.cards.forTable, { tableId }));
+  const players = useAtomValue(convexQuery(api.players.list, { tableId }));
 
+  const [showTable, setShowTable] = useState(false);
   const [selected, setSelected] = useState<CardId | null>(null);
   const [localOrder, setLocalOrder] = useState<ReadonlyArray<CardId> | null>(null);
   const [drag, setDrag] = useState<HandDrag | null>(null);
@@ -188,6 +192,12 @@ export const PlayerView = ({
   const stockCount = piles?.stockCount ?? 0;
   const burnTop = piles?.burnTop ?? null;
 
+  const leaveTable = () => {
+    if (!window.confirm(t(lang, "player.leaveConfirm"))) return;
+    localStorage.removeItem(storedPlayerKey(tableId));
+    void run(api.players.leave, { playerId }).finally(() => navigate("/"));
+  };
+
   return (
     <div className="player-page">
       <header className="player-header" style={{ borderColor: player.color }}>
@@ -198,6 +208,14 @@ export const PlayerView = ({
         <span className="player-hand-count">
           {t(lang, "player.cards", { count: hand.length })}
         </span>
+        <button
+          className={`btn btn-icon${showTable ? " btn-primary" : ""}`}
+          aria-label={t(lang, "player.showTable")}
+          title={t(lang, "player.showTable")}
+          onClick={() => setShowTable((s) => !s)}
+        >
+          👁
+        </button>
         {fullscreenAvailable() && (
           <button
             className="btn btn-icon"
@@ -207,7 +225,19 @@ export const PlayerView = ({
             ⛶
           </button>
         )}
+        <button
+          className="btn btn-icon"
+          aria-label={t(lang, "player.leave")}
+          title={t(lang, "player.leave")}
+          onClick={leaveTable}
+        >
+          🚪
+        </button>
       </header>
+
+      {showTable && piles !== undefined && (
+        <MiniTable table={table} players={players ?? []} cards={piles} />
+      )}
 
       <div className="player-actions">
         {table.config.stockPile && (

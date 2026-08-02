@@ -255,6 +255,9 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
     <div className="table-page">
       <header className="table-header">
         <h1>🃏 {table.name}</h1>
+        {table.code !== undefined && (
+          <span className="table-code">{table.code}</span>
+        )}
         <div className="table-actions">
           <button
             className="btn"
@@ -475,6 +478,11 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           <div className="lobby-panel" onClick={(e) => e.stopPropagation()}>
             <h2>{t(lang, "table.scanToJoin")}</h2>
             <QRCode text={joinLink} size={240} />
+            {table.code !== undefined && (
+              <div className="lobby-code">
+                {t(lang, "table.code")}: <strong>{table.code}</strong>
+              </div>
+            )}
             <a className="join-link" href={joinLink} target="_blank" rel="noreferrer">
               {joinLink}
             </a>

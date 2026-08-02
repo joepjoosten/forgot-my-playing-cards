@@ -6,6 +6,16 @@ import { deal, mulberry32, prepareDeck, shuffle } from "./lib/deck";
 import { circlePosition } from "./lib/layout";
 import { clearAll } from "./events";
 
+// No 0/O/1/I: every character is unambiguous when read from a screen.
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CODE_LENGTH = 5;
+
+const generateCode = (): string =>
+  Array.from(
+    { length: CODE_LENGTH },
+    () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)],
+  ).join("");
+
 export const create = mutation({
   args: {
     name: v.string(),
@@ -13,13 +23,36 @@ export const create = mutation({
     language: v.optional(language),
   },
   handler: async (ctx, args) => {
+    let code = generateCode();
+    while (
+      (await ctx.db
+        .query("tables")
+        .withIndex("by_code", (q) => q.eq("code", code))
+        .first()) !== null
+    ) {
+      code = generateCode();
+    }
     return await ctx.db.insert("tables", {
       name: args.name,
       status: "lobby",
       config: args.config,
       round: 0,
       language: args.language ?? "en",
+      code,
     });
+  },
+});
+
+/** Look a table up by its short join code (case/whitespace-insensitive). */
+export const byCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const code = args.code.replace(/\s/g, "").toUpperCase();
+    if (code.length === 0) return null;
+    return await ctx.db
+      .query("tables")
+      .withIndex("by_code", (q) => q.eq("code", code))
+      .first();
   },
 });
 

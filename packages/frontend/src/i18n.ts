@@ -43,6 +43,10 @@ const en = {
   "home.creating": "Creating…",
   "home.hint":
     "Open the table on a TV or tablet in the middle, then everyone joins by scanning the QR code with their phone.",
+  "home.joinTitle": "Join a table",
+  "home.joinCode": "Table code",
+  "home.joinGo": "Join",
+  "home.codeNotFound": "No table found with that code.",
 
   // Table
   "table.loading": "Loading table…",
@@ -56,6 +60,7 @@ const en = {
   "table.stock": "Stock",
   "table.burn": "Burn",
   "table.scanToJoin": "Scan to join",
+  "table.code": "Code",
   "table.waitingForPlayers": "Waiting for players…",
   "table.dealAndStart": "Deal & start",
   "table.close": "Close",
@@ -81,6 +86,9 @@ const en = {
   "player.play": "Play",
   "player.playFaceDown": "Play face down",
   "player.burn": "Burn",
+  "player.leave": "Leave table",
+  "player.leaveConfirm": "Leave this table? Your cards go back into the stock pile.",
+  "player.showTable": "Show the table",
 } as const;
 
 const nl: Record<MessageKey, string> = {
@@ -116,6 +124,10 @@ const nl: Record<MessageKey, string> = {
   "home.creating": "Aanmaken…",
   "home.hint":
     "Open de tafel op een tv of tablet in het midden; iedereen doet mee door de QR-code met hun telefoon te scannen.",
+  "home.joinTitle": "Meedoen aan een tafel",
+  "home.joinCode": "Tafelcode",
+  "home.joinGo": "Meedoen",
+  "home.codeNotFound": "Geen tafel gevonden met die code.",
 
   // Table
   "table.loading": "Tafel laden…",
@@ -129,6 +141,7 @@ const nl: Record<MessageKey, string> = {
   "table.stock": "Trekstapel",
   "table.burn": "Afleg",
   "table.scanToJoin": "Scan om mee te doen",
+  "table.code": "Code",
   "table.waitingForPlayers": "Wachten op spelers…",
   "table.dealAndStart": "Delen & starten",
   "table.close": "Sluiten",
@@ -155,6 +168,10 @@ const nl: Record<MessageKey, string> = {
   "player.play": "Spelen",
   "player.playFaceDown": "Gesloten spelen",
   "player.burn": "Afleggen",
+  "player.leave": "Tafel verlaten",
+  "player.leaveConfirm":
+    "Deze tafel verlaten? Je kaarten gaan terug in de trekstapel.",
+  "player.showTable": "Tafel bekijken",
 };
 
 export type MessageKey = keyof typeof en;
