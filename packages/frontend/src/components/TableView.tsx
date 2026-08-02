@@ -252,6 +252,15 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               {t(lang, "table.gatherStock")}
             </button>
           )}
+          {table.config.burnPile && table.config.stockPile && !inLobby && (
+            <button
+              className="btn"
+              disabled={cards.burnCount === 0}
+              onClick={() => void run(api.tables.reshuffleBurn, { tableId })}
+            >
+              {t(lang, "table.reshuffleBurn")}
+            </button>
+          )}
           <button
             className="btn"
             onClick={() => void run(api.players.arrangeCircle, { tableId })}

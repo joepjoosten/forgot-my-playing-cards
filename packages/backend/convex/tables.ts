@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { language, tableConfig } from "./schema";
-import { deal, prepareDeck } from "./lib/deck";
+import { deal, mulberry32, prepareDeck, shuffle } from "./lib/deck";
 import { circlePosition } from "./lib/layout";
 import { clearAll } from "./events";
 
@@ -147,6 +147,50 @@ export const startRound = mutation({
       status: "playing",
       round: table.round + 1,
     });
+  },
+});
+
+/**
+ * Reshuffle the burn pile and slide it face-down under the current stock
+ * pile — the usual move when the stock runs low. Uses the table's
+ * configured shuffle, freshly seeded.
+ */
+export const reshuffleBurn = mutation({
+  args: { tableId: v.id("tables") },
+  handler: async (ctx, args) => {
+    const table = await ctx.db.get(args.tableId);
+    if (table === null) throw new Error("Table not found");
+
+    const burn = await ctx.db
+      .query("cards")
+      .withIndex("by_table_zone", (q) =>
+        q.eq("tableId", args.tableId).eq("zone", "burn"),
+      )
+      .collect();
+    if (burn.length === 0) return;
+
+    const stock = await ctx.db
+      .query("cards")
+      .withIndex("by_table_zone", (q) =>
+        q.eq("tableId", args.tableId).eq("zone", "stock"),
+      )
+      .collect();
+
+    const seed = Math.floor(Math.random() * 0xffffffff);
+    const shuffled = Effect.runSync(
+      shuffle(burn, table.config.shuffle, table.config.shufflePasses, mulberry32(seed)),
+    );
+
+    let bottom = stock.reduce((min, c) => Math.min(min, c.order), 0);
+    for (const card of shuffled) {
+      bottom--;
+      await ctx.db.patch(card._id, {
+        zone: "stock",
+        order: bottom,
+        ownerId: undefined,
+        faceUp: false,
+      });
+    }
   },
 });
 
