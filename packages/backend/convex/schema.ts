@@ -48,11 +48,20 @@ export default defineSchema({
   }).index("by_table", ["tableId"]),
 
   /** Short-lived notifications so the table can animate what just
-   * happened (e.g. a card flying from the stock pile to a player). */
+   * happened (e.g. a card flying between a pile and a player). */
   events: defineTable({
     tableId: v.id("tables"),
-    kind: v.union(v.literal("draw"), v.literal("takeBurn")),
+    kind: v.union(
+      v.literal("draw"),
+      v.literal("takeBurn"),
+      v.literal("play"),
+      v.literal("burn"),
+    ),
     playerId: v.id("players"),
+    // For "play": which card and where it landed on the board.
+    cardId: v.optional(v.id("cards")),
+    x: v.optional(v.number()),
+    y: v.optional(v.number()),
   }).index("by_table", ["tableId"]),
 
   cards: defineTable({

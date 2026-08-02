@@ -19,8 +19,9 @@ export const recent = query({
 export const emit = async (
   ctx: MutationCtx,
   tableId: Id<"tables">,
-  kind: "draw" | "takeBurn",
+  kind: "draw" | "takeBurn" | "play" | "burn",
   playerId: Id<"players">,
+  extra?: { cardId?: Id<"cards">; x?: number; y?: number },
 ): Promise<void> => {
   const now = Date.now();
   const existing = await ctx.db
@@ -32,7 +33,7 @@ export const emit = async (
       await ctx.db.delete(event._id);
     }
   }
-  await ctx.db.insert("events", { tableId, kind, playerId });
+  await ctx.db.insert("events", { tableId, kind, playerId, ...extra });
 };
 
 export const clearAll = async (

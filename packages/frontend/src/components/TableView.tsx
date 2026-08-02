@@ -22,9 +22,13 @@ interface Flight {
   id: string;
   from: { x: number; y: number };
   to: { x: number; y: number };
+  /** The board card this flight delivers (play events): it stays hidden
+   * until the flight lands, and the flight shows its face. */
+  cardId?: string;
+  face?: { rank: string; suit: string; faceUp: boolean };
 }
 
-/** A card back flying across the board (e.g. stock pile → drawing player). */
+/** A card flying across the board (pile ↔ player). */
 const FlyingCard = ({ flight }: { flight: Flight }) => {
   const [pos, setPos] = useState(flight.from);
   const [landed, setLanded] = useState(false);
@@ -46,7 +50,12 @@ const FlyingCard = ({ flight }: { flight: Flight }) => {
       className={`fly-card${landed ? " fly-card-landed" : ""}`}
       style={{ left: pos.x, top: pos.y }}
     >
-      <CardView rank="" suit="" faceUp={false} width={52} />
+      <CardView
+        rank={flight.face?.rank ?? ""}
+        suit={flight.face?.suit ?? ""}
+        faceUp={flight.face?.faceUp ?? false}
+        width={52}
+      />
     </div>
   );
 };
@@ -84,18 +93,48 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
       const target = players.find((p) => p._id === event.playerId);
       if (target === undefined) continue;
 
-      // Pile origin: piles sit centred on the board, stock left of burn.
-      const bothPiles = table.config.stockPile && table.config.burnPile;
-      const offset = bothPiles ? (event.kind === "draw" ? -44 : 44) : 0;
-      const flight: Flight = {
-        id: event._id,
-        from: { x: rect.width / 2 + offset, y: rect.height / 2 },
-        to: { x: target.x * rect.width, y: target.y * rect.height },
+      // Piles sit centred on the board, stock left of burn.
+      const pilePos = (which: "stock" | "burn") => {
+        const both = table.config.stockPile && table.config.burnPile;
+        const offset = both ? (which === "stock" ? -44 : 44) : 0;
+        return { x: rect.width / 2 + offset, y: rect.height / 2 };
       };
-      setFlights((current) => [...current, flight]);
-      setTimeout(() => {
-        setFlights((current) => current.filter((f) => f.id !== flight.id));
-      }, 1000);
+      const playerPos = { x: target.x * rect.width, y: target.y * rect.height };
+
+      let flight: Flight | null = null;
+      switch (event.kind) {
+        case "draw":
+          flight = { id: event._id, from: pilePos("stock"), to: playerPos };
+          break;
+        case "takeBurn":
+          flight = { id: event._id, from: pilePos("burn"), to: playerPos };
+          break;
+        case "play":
+          if (event.x !== undefined && event.y !== undefined) {
+            flight = {
+              id: event._id,
+              from: playerPos,
+              to: { x: event.x * rect.width, y: event.y * rect.height },
+              cardId: event.cardId,
+            };
+          }
+          break;
+        case "burn":
+          flight = { id: event._id, from: playerPos, to: pilePos("burn") };
+          break;
+      }
+      if (flight === null) continue;
+
+      const done = flight;
+      setFlights((current) => [...current, done]);
+      // Play flights end exactly when the transition lands, so the real
+      // board card (hidden while in flight) appears at the landing moment.
+      setTimeout(
+        () => {
+          setFlights((current) => current.filter((f) => f.id !== done.id));
+        },
+        event.kind === "play" ? 700 : 1000,
+      );
     }
   }, [events, players, table]);
 
@@ -273,8 +312,10 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
             )}
           </div>
 
-          {/* board cards */}
-          {cards.board.map((card: Card) => {
+          {/* board cards (a card still flying in stays hidden until it lands) */}
+          {cards.board
+            .filter((card: Card) => !flights.some((f) => f.cardId === card._id))
+            .map((card: Card) => {
             const pos = dragPosition("card", card._id, card.x, card.y);
             return (
               <div
@@ -308,10 +349,30 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
             );
           })}
 
-          {/* draw / take-burn animations */}
-          {flights.map((flight) => (
-            <FlyingCard key={flight.id} flight={flight} />
-          ))}
+          {/* card-movement animations */}
+          {flights.map((flight) => {
+            const boardCard =
+              flight.cardId !== undefined
+                ? cards.board.find((c) => c._id === flight.cardId)
+                : undefined;
+            return (
+              <FlyingCard
+                key={flight.id}
+                flight={
+                  boardCard === undefined
+                    ? flight
+                    : {
+                        ...flight,
+                        face: {
+                          rank: boardCard.rank,
+                          suit: boardCard.suit,
+                          faceUp: boardCard.faceUp,
+                        },
+                      }
+                }
+              />
+            );
+          })}
 
           {/* players */}
           {players.map((player: Player) => {

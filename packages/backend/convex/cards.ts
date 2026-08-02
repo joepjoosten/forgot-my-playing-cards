@@ -96,14 +96,24 @@ export const play = mutation({
   handler: async (ctx, args) => {
     const card = await ctx.db.get(args.cardId);
     if (card === null) return;
+    const x = Math.min(1, Math.max(0, args.x));
+    const y = Math.min(1, Math.max(0, args.y));
+    const thrownBy = card.zone === "hand" ? card.ownerId : undefined;
     await ctx.db.patch(args.cardId, {
       zone: "board",
       ownerId: undefined,
-      x: Math.min(1, Math.max(0, args.x)),
-      y: Math.min(1, Math.max(0, args.y)),
+      x,
+      y,
       z: await nextBoardZ(ctx, card.tableId),
       faceUp: args.faceUp,
     });
+    if (thrownBy !== undefined) {
+      await emit(ctx, card.tableId, "play", thrownBy, {
+        cardId: card._id,
+        x,
+        y,
+      });
+    }
   },
 });
 
@@ -179,6 +189,7 @@ export const burn = mutation({
   handler: async (ctx, args) => {
     const card = await ctx.db.get(args.cardId);
     if (card === null) return;
+    const discardedBy = card.zone === "hand" ? card.ownerId : undefined;
     const pile = await ctx.db
       .query("cards")
       .withIndex("by_table_zone", (q) =>
@@ -192,6 +203,9 @@ export const burn = mutation({
       order: top,
       faceUp: true,
     });
+    if (discardedBy !== undefined) {
+      await emit(ctx, card.tableId, "burn", discardedBy);
+    }
   },
 });
 
