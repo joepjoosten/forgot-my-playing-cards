@@ -69,6 +69,16 @@ const en = {
   "home.unoNote":
     "A full UNO set: 4 colours, action cards and wilds (108 cards per deck). The table just shuffles and deals — you bring the rules.",
 
+  // Presets
+  "home.presets": "Quick setups",
+  "preset.uno": "UNO",
+  "preset.pesten": "Crazy Eights",
+  "preset.poker": "Poker",
+  "preset.rummy": "Rummy",
+  "preset.hearts": "Hearts",
+  "preset.gofish": "Go Fish",
+  "preset.free": "Free play",
+
   // Table
   "table.loading": "Loading table…",
   "table.gone": "This table no longer exists.",
@@ -166,6 +176,16 @@ const nl: Record<MessageKey, string> = {
   "home.deckUno": "UNO",
   "home.unoNote":
     "Een volledige UNO-set: 4 kleuren, actiekaarten en jokers (108 kaarten per stok). De tafel schudt en deelt alleen — jij brengt de regels mee.",
+
+  // Presets
+  "home.presets": "Snel opzetten",
+  "preset.uno": "UNO",
+  "preset.pesten": "Pesten",
+  "preset.poker": "Poker",
+  "preset.rummy": "Rummy",
+  "preset.hearts": "Hartenjagen",
+  "preset.gofish": "Kwartet",
+  "preset.free": "Vrij spelen",
 
   // Table
   "table.loading": "Tafel laden…",
