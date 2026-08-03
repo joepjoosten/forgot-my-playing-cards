@@ -14,7 +14,12 @@ export const shuffleKind = v.union(
  * how many decks, how to shuffle, how many cards to deal, and which piles
  * exist on the board (a stock pile to draw from, a burn/discard pile).
  */
+export const deckType = v.union(v.literal("standard"), v.literal("uno"));
+
 export const tableConfig = v.object({
+  // Which card set to build. Optional so tables created before this field
+  // existed keep working (they are treated as "standard").
+  deckType: v.optional(deckType),
   deckCount: v.number(),
   jokersPerDeck: v.number(),
   shuffle: shuffleKind,
