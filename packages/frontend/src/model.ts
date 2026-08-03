@@ -9,6 +9,7 @@ export type PlayerId = Id<"players">;
 export type CardId = Id<"cards">;
 
 export const defaultConfig: TableConfig = {
+  deckType: "standard",
   deckCount: 1,
   jokersPerDeck: 0,
   shuffle: "riffle",

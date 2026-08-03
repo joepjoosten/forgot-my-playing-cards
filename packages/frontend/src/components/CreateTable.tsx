@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { api } from "@backend/convex/_generated/api";
 import { convex } from "../convex";
 import { navigate } from "../route";
@@ -6,6 +6,7 @@ import { defaultConfig, type TableConfig } from "../model";
 import { langFromParam, languages, t, type Language } from "../i18n";
 
 const shuffleKinds = ["riffle", "overhand", "fisher-yates", "cut", "none"] as const;
+const deckTypes = ["standard", "uno"] as const;
 
 export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
   // The creating client's browser language (or the one carried over from the
@@ -17,6 +18,13 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
   );
   const [config, setConfig] = useState<TableConfig>(defaultConfig);
   const [creating, setCreating] = useState(false);
+  // Which accordion sections are expanded. Cards is open to start with.
+  const [open, setOpen] = useState<Record<string, boolean>>({ cards: true });
+
+  const isUno = config.deckType === "uno";
+
+  const toggle = (id: string) =>
+    setOpen((o) => ({ ...o, [id]: o[id] !== true }));
 
   const patch = (partial: Partial<TableConfig>) =>
     setConfig((c) => ({ ...c, ...partial }));
@@ -82,56 +90,103 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
             placeholder={t(lang, "home.tableNamePlaceholder")}
           />
         </label>
+      </div>
 
-        <div className="field-row">
+      <div className="panel accordion">
+        <Section
+          id="cards"
+          title={t(lang, "home.sectionCards")}
+          open={open.cards === true}
+          onToggle={toggle}
+        >
           <label className="field">
-            <span>{t(lang, "home.decks")}</span>
-            <NumberStepper
-              value={config.deckCount}
-              min={1}
-              max={8}
-              onChange={(deckCount) => patch({ deckCount })}
-            />
-          </label>
-          <label className="field">
-            <span>{t(lang, "home.jokersPerDeck")}</span>
-            <NumberStepper
-              value={config.jokersPerDeck}
-              min={0}
-              max={4}
-              onChange={(jokersPerDeck) => patch({ jokersPerDeck })}
-            />
-          </label>
-        </div>
-
-        <div className="field-row">
-          <label className="field">
-            <span>{t(lang, "home.shuffle")}</span>
+            <span>{t(lang, "home.deckType")}</span>
             <select
-              value={config.shuffle}
+              value={config.deckType ?? "standard"}
               onChange={(e) =>
-                patch({ shuffle: e.target.value as TableConfig["shuffle"] })
+                patch({ deckType: e.target.value as TableConfig["deckType"] })
               }
             >
-              {shuffleKinds.map((kind) => (
+              {deckTypes.map((kind) => (
                 <option key={kind} value={kind}>
-                  {t(lang, `home.shuffle.${kind}`)}
+                  {t(lang, kind === "uno" ? "home.deckUno" : "home.deckStandard")}
                 </option>
               ))}
             </select>
           </label>
-          <label className="field">
-            <span>{t(lang, "home.passes")}</span>
-            <NumberStepper
-              value={config.shufflePasses}
-              min={1}
-              max={20}
-              onChange={(shufflePasses) => patch({ shufflePasses })}
-            />
-          </label>
-        </div>
 
-        <div className="field-row">
+          <div className="field-row">
+            <label className="field">
+              <span>{t(lang, "home.decks")}</span>
+              <NumberStepper
+                value={config.deckCount}
+                min={1}
+                max={8}
+                onChange={(deckCount) => patch({ deckCount })}
+              />
+            </label>
+            {!isUno && (
+              <label className="field">
+                <span>{t(lang, "home.jokersPerDeck")}</span>
+                <NumberStepper
+                  value={config.jokersPerDeck}
+                  min={0}
+                  max={4}
+                  onChange={(jokersPerDeck) => patch({ jokersPerDeck })}
+                />
+              </label>
+            )}
+          </div>
+
+          {isUno ? (
+            <p className="section-note">{t(lang, "home.unoNote")}</p>
+          ) : (
+            <label className="field">
+              <span>{t(lang, "home.cardColors")}</span>
+              <select
+                value={config.fourColor === true ? "4" : "2"}
+                onChange={(e) => patch({ fourColor: e.target.value === "4" })}
+              >
+                <option value="2">{t(lang, "home.colors2")}</option>
+                <option value="4">{t(lang, "home.colors4")}</option>
+              </select>
+            </label>
+          )}
+        </Section>
+
+        <Section
+          id="shuffle"
+          title={t(lang, "home.sectionShuffle")}
+          open={open.shuffle === true}
+          onToggle={toggle}
+        >
+          <div className="field-row">
+            <label className="field">
+              <span>{t(lang, "home.shuffle")}</span>
+              <select
+                value={config.shuffle}
+                onChange={(e) =>
+                  patch({ shuffle: e.target.value as TableConfig["shuffle"] })
+                }
+              >
+                {shuffleKinds.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {t(lang, `home.shuffle.${kind}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>{t(lang, "home.passes")}</span>
+              <NumberStepper
+                value={config.shufflePasses}
+                min={1}
+                max={20}
+                onChange={(shufflePasses) => patch({ shufflePasses })}
+              />
+            </label>
+          </div>
+
           <label className="field">
             <span>{t(lang, "home.dealPerPlayer")}</span>
             <NumberStepper
@@ -141,20 +196,60 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
               onChange={(dealPerPlayer) => patch({ dealPerPlayer })}
             />
           </label>
-          <label className="field">
-            <span>{t(lang, "home.cardColors")}</span>
-            <select
-              value={config.fourColor === true ? "4" : "2"}
-              onChange={(e) => patch({ fourColor: e.target.value === "4" })}
-            >
-              <option value="2">{t(lang, "home.colors2")}</option>
-              <option value="4">{t(lang, "home.colors4")}</option>
-            </select>
-          </label>
-        </div>
+        </Section>
 
-        {config.burnPile && (
-          <div className="field-row">
+        <Section
+          id="board"
+          title={t(lang, "home.sectionBoard")}
+          open={open.board === true}
+          onToggle={toggle}
+        >
+          <div className="field-row toggles">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={config.stockPile}
+                onChange={(e) => patch({ stockPile: e.target.checked })}
+              />
+              <span>{t(lang, "home.stockPile")}</span>
+            </label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={config.burnPile}
+                disabled={config.playToBoard === false}
+                onChange={(e) => patch({ burnPile: e.target.checked })}
+              />
+              <span>{t(lang, "home.burnPile")}</span>
+            </label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={config.playToBoard !== false}
+                onChange={(e) =>
+                  // Burn-only tables need the burn pile: cards must go somewhere.
+                  patch(
+                    e.target.checked
+                      ? { playToBoard: true }
+                      : { playToBoard: false, burnPile: true },
+                  )
+                }
+              />
+              <span>{t(lang, "home.playToBoard")}</span>
+            </label>
+            {config.playToBoard !== false && (
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={config.playFaceUp}
+                  onChange={(e) => patch({ playFaceUp: e.target.checked })}
+                />
+                <span>{t(lang, "home.playFaceUp")}</span>
+              </label>
+            )}
+          </div>
+
+          {config.burnPile && (
             <label className="field">
               <span>{t(lang, "home.startBurnCount")}</span>
               <NumberStepper
@@ -164,63 +259,45 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
                 onChange={(startBurnCount) => patch({ startBurnCount })}
               />
             </label>
-          </div>
-        )}
-
-        <div className="field-row toggles">
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={config.stockPile}
-              onChange={(e) => patch({ stockPile: e.target.checked })}
-            />
-            <span>{t(lang, "home.stockPile")}</span>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={config.burnPile}
-              disabled={config.playToBoard === false}
-              onChange={(e) => patch({ burnPile: e.target.checked })}
-            />
-            <span>{t(lang, "home.burnPile")}</span>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={config.playToBoard !== false}
-              onChange={(e) =>
-                // Burn-only tables need the burn pile: cards must go somewhere.
-                patch(
-                  e.target.checked
-                    ? { playToBoard: true }
-                    : { playToBoard: false, burnPile: true },
-                )
-              }
-            />
-            <span>{t(lang, "home.playToBoard")}</span>
-          </label>
-          {config.playToBoard !== false && (
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={config.playFaceUp}
-                onChange={(e) => patch({ playFaceUp: e.target.checked })}
-              />
-              <span>{t(lang, "home.playFaceUp")}</span>
-            </label>
           )}
-        </div>
-
-        <button className="btn btn-primary btn-big" onClick={create} disabled={creating}>
-          {creating ? t(lang, "home.creating") : t(lang, "home.create")}
-        </button>
+        </Section>
       </div>
+
+      <button className="btn btn-primary btn-big create-btn" onClick={create} disabled={creating}>
+        {creating ? t(lang, "home.creating") : t(lang, "home.create")}
+      </button>
 
       <p className="hint">{t(lang, "home.hint")}</p>
     </div>
   );
 };
+
+const Section = ({
+  id,
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string;
+  title: string;
+  open: boolean;
+  onToggle: (id: string) => void;
+  children: ReactNode;
+}) => (
+  <div className={`accordion-item${open ? " is-open" : ""}`}>
+    <button
+      type="button"
+      className="accordion-header"
+      aria-expanded={open}
+      onClick={() => onToggle(id)}
+    >
+      <span>{title}</span>
+      <span className="accordion-chevron">▾</span>
+    </button>
+    {open && <div className="accordion-body">{children}</div>}
+  </div>
+);
 
 const NumberStepper = ({
   value,

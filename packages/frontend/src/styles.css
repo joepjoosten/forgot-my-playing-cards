@@ -257,6 +257,65 @@ select {
   justify-content: center;
 }
 
+/* ---------- uno cards ---------- */
+
+.card-uno {
+  border: none;
+  overflow: hidden;
+  font-weight: 800;
+}
+
+/* The classic tilted centre ellipse. White on coloured cards; the four-colour
+   wheel on wild / wild draw four cards. */
+.card-uno-oval,
+.card-uno-wheel {
+  position: absolute;
+  inset: 6% 14%;
+  border-radius: 50%;
+  transform: rotate(-28deg);
+  z-index: 0;
+}
+
+.card-uno-oval {
+  background: #fdfdfb;
+}
+
+.card-uno-wheel {
+  background: conic-gradient(
+    #d32f2f 0deg 90deg,
+    #2072cf 90deg 180deg,
+    #2e9e4f 180deg 270deg,
+    #f2b807 270deg 360deg
+  );
+}
+
+.card-uno-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.card-uno .card-corner {
+  z-index: 2;
+}
+
+/* Every UNO glyph is white with a solid dark outline, so it stays legible on
+   any colour and on the white centre oval (like a real UNO card). */
+.card-uno .card-corner,
+.card-uno-center {
+  color: #fff;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.85);
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.card-uno-center {
+  -webkit-text-stroke-width: 1.6px;
+}
+
 /* ---------- table view ---------- */
 
 .table-page {
@@ -1067,6 +1126,66 @@ select {
   color: #f4f1e8;
   font-size: 13px;
   opacity: 0.6;
+}
+
+/* ---------- accordion (create screen) ---------- */
+
+.accordion {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.accordion-item + .accordion-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  color: #f4f1e8;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.accordion-header:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.accordion-chevron {
+  transition: transform 0.15s ease;
+  opacity: 0.7;
+  font-size: 14px;
+}
+
+.accordion-item.is-open .accordion-chevron {
+  transform: rotate(180deg);
+}
+
+.accordion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 20px 20px;
+}
+
+.section-note {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.create-btn {
+  width: 100%;
+  max-width: 440px;
 }
 
 /* ---------- create / join headers ---------- */

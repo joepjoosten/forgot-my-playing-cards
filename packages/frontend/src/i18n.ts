@@ -60,6 +60,16 @@ const en = {
   "home.tileCreateSub": "Set up a new game",
   "common.back": "← Back",
 
+  // Create sections + card sets
+  "home.sectionCards": "Cards",
+  "home.sectionShuffle": "Shuffle & dealing",
+  "home.sectionBoard": "Board & piles",
+  "home.deckType": "Card set",
+  "home.deckStandard": "Playing cards",
+  "home.deckUno": "UNO",
+  "home.unoNote":
+    "A full UNO set: 4 colours, action cards and wilds (108 cards per deck). The table just shuffles and deals — you bring the rules.",
+
   // Table
   "table.loading": "Loading table…",
   "table.gone": "This table no longer exists.",
@@ -162,6 +172,16 @@ const nl: Record<MessageKey, string> = {
   "home.tileCreate": "Tafel maken",
   "home.tileCreateSub": "Zet een nieuw spel op",
   "common.back": "← Terug",
+
+  // Create sections + card sets
+  "home.sectionCards": "Kaarten",
+  "home.sectionShuffle": "Schudden & delen",
+  "home.sectionBoard": "Tafel & stapels",
+  "home.deckType": "Kaartset",
+  "home.deckStandard": "Speelkaarten",
+  "home.deckUno": "UNO",
+  "home.unoNote":
+    "Een volledige UNO-set: 4 kleuren, actiekaarten en jokers (108 kaarten per stok). De tafel schudt en deelt alleen — jij brengt de regels mee.",
 
   // Table
   "table.loading": "Tafel laden…",
