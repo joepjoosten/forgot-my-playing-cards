@@ -21,7 +21,10 @@ export type ShuffleKind =
   | "cut"
   | "none";
 
+export type DeckType = "standard" | "uno";
+
 export interface DeckConfig {
+  readonly deckType?: DeckType;
   readonly deckCount: number;
   readonly jokersPerDeck: number;
   readonly shuffle: ShuffleKind;
@@ -44,6 +47,14 @@ export const RANKS = [
   "Q",
   "K",
 ] as const;
+
+/**
+ * UNO cards are self-describing: the colour lives in `suit` and the value in
+ * `rank`, so the frontend can tell them apart from playing cards without any
+ * extra plumbing. Wild cards use the "wild" colour.
+ */
+export const UNO_COLORS = ["red", "yellow", "green", "blue"] as const;
+export const UNO_ACTIONS = ["skip", "reverse", "+2"] as const;
 
 export type Rng = () => number;
 
@@ -74,6 +85,32 @@ export const buildDecks = (
       for (let j = 0; j < jokersPerDeck; j++) {
         cards.push({ deck, rank: "JOKER", suit: "★" });
       }
+    }
+    return cards;
+  });
+
+/** One standard 108-card UNO deck per `deckCount`. */
+export const buildUnoDecks = (
+  deckCount: number,
+): Effect.Effect<Array<CardSpec>> =>
+  Effect.sync(() => {
+    const cards: Array<CardSpec> = [];
+    for (let deck = 0; deck < deckCount; deck++) {
+      for (const color of UNO_COLORS) {
+        // One 0, two of every 1-9, two of every action card.
+        cards.push({ deck, rank: "0", suit: color });
+        for (let n = 1; n <= 9; n++) {
+          cards.push({ deck, rank: String(n), suit: color });
+          cards.push({ deck, rank: String(n), suit: color });
+        }
+        for (const action of UNO_ACTIONS) {
+          cards.push({ deck, rank: action, suit: color });
+          cards.push({ deck, rank: action, suit: color });
+        }
+      }
+      // Four wilds and four wild draw fours per deck.
+      for (let i = 0; i < 4; i++) cards.push({ deck, rank: "wild", suit: "wild" });
+      for (let i = 0; i < 4; i++) cards.push({ deck, rank: "+4", suit: "wild" });
     }
     return cards;
   });
@@ -162,7 +199,10 @@ export const prepareDeck = (
   seed: number,
 ): Effect.Effect<Array<CardSpec>> =>
   Effect.gen(function* () {
-    const cards = yield* buildDecks(config.deckCount, config.jokersPerDeck);
+    const cards =
+      config.deckType === "uno"
+        ? yield* buildUnoDecks(config.deckCount)
+        : yield* buildDecks(config.deckCount, config.jokersPerDeck);
     return yield* shuffle(cards, config.shuffle, config.shufflePasses, mulberry32(seed));
   });
 
