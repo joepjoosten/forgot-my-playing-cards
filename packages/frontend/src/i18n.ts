@@ -10,6 +10,10 @@ export const languages: ReadonlyArray<{ value: Language; label: string }> = [
 export const detectLanguage = (): Language =>
   navigator.language?.toLowerCase().startsWith("nl") ? "nl" : "en";
 
+/** A `?lang=` param if it names a supported language, else the browser default. */
+export const langFromParam = (value: string | null | undefined): Language =>
+  value === "nl" || value === "en" ? value : detectLanguage();
+
 const en = {
   // App
   "app.fullscreen": "Full screen",
@@ -47,6 +51,13 @@ const en = {
   "home.joinCode": "Table code",
   "home.joinGo": "Join",
   "home.codeNotFound": "No table found with that code.",
+
+  // Landing
+  "home.tileJoin": "Join a table",
+  "home.tileJoinSub": "Enter a table code",
+  "home.tileCreate": "Create a table",
+  "home.tileCreateSub": "Set up a new game",
+  "common.back": "← Back",
 
   // Table
   "table.loading": "Loading table…",
@@ -128,6 +139,13 @@ const nl: Record<MessageKey, string> = {
   "home.joinCode": "Tafelcode",
   "home.joinGo": "Meedoen",
   "home.codeNotFound": "Geen tafel gevonden met die code.",
+
+  // Landing
+  "home.tileJoin": "Tafel joinen",
+  "home.tileJoinSub": "Voer een tafelcode in",
+  "home.tileCreate": "Tafel maken",
+  "home.tileCreateSub": "Zet een nieuw spel op",
+  "common.back": "← Terug",
 
   // Table
   "table.loading": "Tafel laden…",

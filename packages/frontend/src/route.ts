@@ -2,6 +2,8 @@ import { Atom } from "effect/unstable/reactivity";
 
 export type Route =
   | { kind: "home"; params: URLSearchParams }
+  | { kind: "create"; params: URLSearchParams }
+  | { kind: "joincode"; params: URLSearchParams }
   | { kind: "table"; tableId: string }
   | { kind: "join"; tableId: string; params: URLSearchParams }
   | { kind: "play"; tableId: string; playerId: string };
@@ -12,6 +14,10 @@ export const parseHash = (hash: string): Route => {
   const parts = (path ?? "").split("/").filter((p) => p.length > 0);
 
   switch (parts[0]) {
+    case "create":
+      return { kind: "create", params };
+    case "joincode":
+      return { kind: "joincode", params };
     case "table":
       if (parts[1] !== undefined) return { kind: "table", tableId: parts[1] };
       break;
