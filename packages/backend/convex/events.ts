@@ -19,9 +19,15 @@ export const recent = query({
 export const emit = async (
   ctx: MutationCtx,
   tableId: Id<"tables">,
-  kind: "draw" | "takeBurn" | "play" | "burn",
+  kind: "draw" | "takeBurn" | "takeBurnAll" | "play" | "burn" | "pickUp",
   playerId: Id<"players">,
-  extra?: { cardId?: Id<"cards">; x?: number; y?: number },
+  extra?: {
+    cardId?: Id<"cards">;
+    cardIds?: Array<Id<"cards">>;
+    slotStart?: number;
+    x?: number;
+    y?: number;
+  },
 ): Promise<void> => {
   const now = Date.now();
   const existing = await ctx.db

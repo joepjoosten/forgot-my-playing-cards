@@ -78,6 +78,17 @@ export const updateConfig = mutation({
 });
 
 /**
+ * Move the visual turn marker to a player, or clear it. Purely cosmetic:
+ * the platform never enforces turn order.
+ */
+export const setTurn = mutation({
+  args: { tableId: v.id("tables"), playerId: v.optional(v.id("players")) },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.tableId, { turnPlayerId: args.playerId });
+  },
+});
+
+/**
  * Start a (new) round: rebuild the decks, shuffle them according to the
  * table config (an Effect program), deal every player their cards and put
  * the remainder on the stock pile (or spread it on the board when the
@@ -136,6 +147,28 @@ export const startRound = mutation({
           faceUp: true,
         });
       }
+    }
+
+    // Flip the configured number of opening cards face-up onto the burn
+    // pile (the top of the stock goes first, so it ends up on top).
+    const openCount = table.config.burnPile
+      ? Math.min(table.config.startBurnCount ?? 0, stock.length)
+      : 0;
+    const open = stock.splice(stock.length - openCount, openCount).reverse();
+    for (let i = 0; i < open.length; i++) {
+      const spec = open[i]!;
+      await ctx.db.insert("cards", {
+        tableId: args.tableId,
+        deck: spec.deck,
+        rank: spec.rank,
+        suit: spec.suit,
+        zone: "burn",
+        order: i,
+        x: 0.5,
+        y: 0.5,
+        z: 0,
+        faceUp: true,
+      });
     }
 
     for (let i = 0; i < stock.length; i++) {

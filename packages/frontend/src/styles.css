@@ -350,8 +350,83 @@ select {
 
 .board-wrap {
   flex: 1;
+  position: relative;
   padding: 0 12px calc(12px + env(safe-area-inset-bottom));
   min-height: 0;
+}
+
+/* ---------- scoreboard ---------- */
+
+.score-panel {
+  position: absolute;
+  top: 16px;
+  right: 28px;
+  z-index: 1800;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  max-height: calc(100% - 48px);
+  overflow-y: auto;
+}
+
+.score-panel h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-name {
+  flex: 1;
+  min-width: 90px;
+  max-width: 140px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  color: #101010;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-total {
+  min-width: 48px;
+  text-align: right;
+  font-size: 18px;
+  color: #e6c53c;
+}
+
+.score-input {
+  width: 64px;
+  font-size: 16px;
+  padding: 8px;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.92);
+  color: #222;
+  text-align: center;
+}
+
+.score-add {
+  min-height: 40px;
+  padding: 6px 12px;
+}
+
+.score-hint {
+  margin: 0;
+  max-width: 260px;
+  font-size: 12px;
+  opacity: 0.65;
 }
 
 .board {
@@ -402,6 +477,80 @@ select {
   cursor: grab;
 }
 
+/* The element the dragged card would drop onto — same gold ring as a
+   selected card in the hand, so the drop target is unambiguous. */
+.drop-target {
+  outline: 3px solid #e6c53c;
+  outline-offset: 2px;
+}
+
+.board-card.drop-target {
+  border-radius: 8px;
+}
+
+.board-group-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 10px;
+  outline: 3px solid #e6c53c;
+  outline-offset: 3px;
+  pointer-events: none;
+}
+
+/* A card turning over: a quick rotateY flip through its vertical centre. */
+.flip-card {
+  perspective: 600px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flip-card-down {
+  transform: rotateY(180deg);
+}
+
+.flip-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-card-backside {
+  transform: rotateY(180deg);
+}
+
+/* A meld row: cards fanned out from a shared origin, dragged as one via
+   the handle strip above the row. */
+.board-group {
+  position: absolute;
+}
+
+.board-group-handle {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  touch-action: none;
+  cursor: grab;
+}
+
+.board-group-card {
+  position: absolute;
+  top: 0;
+  touch-action: none;
+  cursor: grab;
+}
+
 .player-disk {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -421,6 +570,22 @@ select {
   z-index: 500;
 }
 
+.player-disk-turn {
+  box-shadow:
+    0 0 0 3px rgba(230, 197, 60, 0.9),
+    0 0 22px 6px rgba(230, 197, 60, 0.45);
+}
+
+.player-turn-marker {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg);
+  color: #e6c53c;
+  font-size: 14px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
 .player-name {
   font-size: 13px;
   font-weight: 700;
@@ -428,6 +593,10 @@ select {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.player-score {
+  color: #e6c53c;
 }
 
 .player-count {
@@ -579,6 +748,16 @@ select {
   opacity: 0.8;
 }
 
+.player-turn-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #e6c53c;
+  color: #3a2f05;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .player-actions {
   display: flex;
   gap: 10px;
@@ -712,6 +891,24 @@ select {
     radial-gradient(circle at 50% 40%, #22945f 0%, #187347 60%, #115634 100%);
   box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.45);
   overflow: hidden;
+  pointer-events: none;
+}
+
+/* Armed as a drop target for the selected hand cards. */
+.mini-board-armed {
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.45),
+    0 0 0 3px rgba(230, 197, 60, 0.8);
+}
+
+.mini-board-armed .mini-card .card {
+  outline: 2px solid rgba(230, 197, 60, 0.6);
+}
+
+/* Taps land on the felt or on cards — never on the little player disks. */
+.mini-board-armed .mini-player {
   pointer-events: none;
 }
 

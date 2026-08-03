@@ -272,6 +272,18 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
               </label>
             )}
           </div>
+
+          {config.burnPile && (
+            <label className="field">
+              <span>{t(lang, "home.startBurnCount")}</span>
+              <NumberStepper
+                value={config.startBurnCount ?? 0}
+                min={0}
+                max={10}
+                onChange={(startBurnCount) => patch({ startBurnCount })}
+              />
+            </label>
+          )}
         </Section>
       </div>
 

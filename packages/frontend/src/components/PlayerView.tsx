@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "@effect/atom-react";
 import { api } from "@backend/convex/_generated/api";
 import { convexQuery, run } from "../convex";
@@ -36,12 +36,23 @@ export const PlayerView = ({
   const players = useAtomValue(convexQuery(api.players.list, { tableId }));
 
   const [showTable, setShowTable] = useState(false);
-  const [selected, setSelected] = useState<CardId | null>(null);
+  // Tapping cards toggles them in the selection; two or more form a set
+  // that can be played onto the table as one row.
+  const [selected, setSelected] = useState<ReadonlySet<CardId>>(new Set());
   const [localOrder, setLocalOrder] = useState<ReadonlyArray<CardId> | null>(null);
   const [drag, setDrag] = useState<HandDrag | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<CardId>>(new Set());
+  // Cards this phone played onto the board, most recent last — the take-back
+  // button undoes them one at a time. Only your own plays can be undone.
+  const [playedStack, setPlayedStack] = useState<ReadonlyArray<CardId>>([]);
   const orderEpoch = useRef(0);
   const stripRef = useRef<HTMLDivElement>(null);
+
+  // A new deal invalidates whatever was played in the previous round.
+  const round = table?.round;
+  useEffect(() => {
+    setPlayedStack([]);
+  }, [round]);
 
   if (table === undefined || player === undefined || hand === undefined) {
     return <div className="page center">{t(detectLanguage(), "player.loading")}</div>;
@@ -86,19 +97,30 @@ export const PlayerView = ({
   // Cards leaving the hand are hidden locally until the server confirms,
   // and a fresh local order is kept until the reorder mutation settles —
   // otherwise the hand briefly snaps back to its stale server state.
-  const removeFromHand = (cardId: CardId, mutate: () => Promise<unknown>) => {
-    setHidden((prev) => new Set(prev).add(cardId));
+  const removeManyFromHand = (
+    cardIds: ReadonlyArray<CardId>,
+    mutate: () => Promise<unknown>,
+  ) => {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      for (const id of cardIds) next.add(id);
+      return next;
+    });
     void mutate().finally(() => {
       setHidden((prev) => {
         const next = new Set(prev);
-        next.delete(cardId);
+        for (const id of cardIds) next.delete(id);
         return next;
       });
     });
   };
 
+  const removeFromHand = (cardId: CardId, mutate: () => Promise<unknown>) =>
+    removeManyFromHand([cardId], mutate);
+
   const playCard = (cardId: CardId, faceUp: boolean) => {
-    setSelected(null);
+    setSelected(new Set());
+    setPlayedStack((s) => [...s, cardId]);
     removeFromHand(cardId, () =>
       run(api.cards.play, {
         cardId,
@@ -107,6 +129,29 @@ export const PlayerView = ({
         faceUp,
       }),
     );
+  };
+
+  /** Play the selected cards together as one row (a meld) on the table. */
+  const playSet = (cardIds: ReadonlyArray<CardId>, faceUp: boolean) => {
+    setSelected(new Set());
+    setPlayedStack((s) => [...s, ...cardIds]);
+    removeManyFromHand(cardIds, () =>
+      run(api.cards.playMany, {
+        cardIds: [...cardIds],
+        x: 0.25 + Math.random() * 0.35,
+        y: 0.34 + Math.random() * 0.32,
+        faceUp,
+      }),
+    );
+  };
+
+  /** Take the most recently played card back from the board (undo). */
+  const takeBack = () => {
+    const cardId = playedStack[playedStack.length - 1];
+    if (cardId === undefined) return;
+    setPlayedStack((s) => s.slice(0, -1));
+    // If the card meanwhile left the board (piled, picked up), this no-ops.
+    void run(api.cards.pickUp, { cardId, playerId });
   };
 
   const onPointerDown =
@@ -158,7 +203,7 @@ export const PlayerView = ({
         playCard(drag.cardId, table.config.playFaceUp);
       } else {
         // Burn-only table: an upward flick discards to the burn pile.
-        setSelected(null);
+        setSelected(new Set());
         removeFromHand(drag.cardId, () =>
           run(api.cards.burn, { cardId: drag.cardId }),
         );
@@ -183,14 +228,63 @@ export const PlayerView = ({
         setLocalOrder(null);
       }
     } else {
-      setSelected((s) => (s === drag.cardId ? null : drag.cardId));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(drag.cardId)) next.delete(drag.cardId);
+        else next.add(drag.cardId);
+        return next;
+      });
       setLocalOrder(null);
     }
     setDrag(null);
   };
 
   const stockCount = piles?.stockCount ?? 0;
+  const burnCount = piles?.burnCount ?? 0;
   const burnTop = piles?.burnTop ?? null;
+  // Only cards still in the hand count; stale selections are ignored.
+  const selectedCards = orderedHand.filter((c) => selected.has(c._id as CardId));
+  const isMyTurn = table.turnPlayerId === playerId;
+
+  // Aiming at the mini table: the selection goes exactly where the tap says.
+  const takeSelection = (): ReadonlyArray<CardId> => {
+    const cardIds = selectedCards.map((c) => c._id as CardId);
+    setSelected(new Set());
+    setPlayedStack((s) => [...s, ...cardIds]);
+    return cardIds;
+  };
+
+  const playSelectedAt = (x: number, y: number) => {
+    const cardIds = takeSelection();
+    if (cardIds.length === 0) return;
+    removeManyFromHand(cardIds, () =>
+      run(api.cards.playMany, {
+        cardIds: [...cardIds],
+        x,
+        y,
+        faceUp: table.config.playFaceUp,
+      }),
+    );
+  };
+
+  const addSelectedToGroup = (groupId: string) => {
+    const cardIds = takeSelection();
+    if (cardIds.length === 0) return;
+    removeManyFromHand(cardIds, () =>
+      run(api.cards.addToGroup, { cardIds: [...cardIds], groupId }),
+    );
+  };
+
+  const groupSelectedWith = (targetCardId: CardId) => {
+    const cardIds = takeSelection();
+    if (cardIds.length === 0) return;
+    removeManyFromHand(cardIds, () =>
+      run(api.cards.groupWith, { cardIds: [...cardIds], targetCardId }),
+    );
+  };
+
+  const canTarget =
+    canPlayToBoard && table.status === "playing" && selectedCards.length > 0;
 
   const leaveTable = () => {
     if (!window.confirm(t(lang, "player.leaveConfirm"))) return;
@@ -204,10 +298,30 @@ export const PlayerView = ({
         <span className="player-badge" style={{ background: player.color }}>
           {player.name}
         </span>
+        {isMyTurn && (
+          <span className="player-turn-badge">▶ {t(lang, "player.yourTurn")}</span>
+        )}
         <span className="player-table-name">{table.name}</span>
         <span className="player-hand-count">
           {t(lang, "player.cards", { count: hand.length })}
         </span>
+        {canPlayToBoard && table.status === "playing" && hand.length > 0 && (
+          <button
+            className="btn btn-icon"
+            aria-label={t(lang, "player.revealHand")}
+            title={t(lang, "player.revealHand")}
+            onClick={() => {
+              if (!window.confirm(t(lang, "player.revealConfirm"))) return;
+              setSelected(new Set());
+              removeManyFromHand(
+                hand.map((c) => c._id as CardId),
+                () => run(api.cards.revealHand, { playerId }),
+              );
+            }}
+          >
+            🤲
+          </button>
+        )}
         <button
           className={`btn btn-icon${showTable ? " btn-primary" : ""}`}
           aria-label={t(lang, "player.showTable")}
@@ -236,7 +350,25 @@ export const PlayerView = ({
       </header>
 
       {showTable && piles !== undefined && (
-        <MiniTable table={table} players={players ?? []} cards={piles} />
+        <>
+          <MiniTable
+            table={table}
+            players={players ?? []}
+            cards={piles}
+            targeting={
+              canTarget
+                ? {
+                    onPlayAt: playSelectedAt,
+                    onAddToGroup: addSelectedToGroup,
+                    onGroupWith: groupSelectedWith,
+                  }
+                : undefined
+            }
+          />
+          {canTarget && (
+            <p className="player-hint">{t(lang, "player.tapTable")}</p>
+          )}
+        </>
       )}
 
       <div className="player-actions">
@@ -257,6 +389,23 @@ export const PlayerView = ({
           >
             {t(lang, "player.takeBurn")}
             {burnTop !== null && burnTop.faceUp ? ` (${burnTop.rank}${burnTop.suit})` : ""}
+          </button>
+        )}
+        {table.config.burnPile && burnCount > 1 && (
+          <button
+            className="btn btn-big"
+            onClick={() => void run(api.cards.takeBurnAll, { playerId })}
+          >
+            {t(lang, "player.takeBurnAll", { count: burnCount })}
+          </button>
+        )}
+        {table.status === "playing" && playedStack.length > 0 && (
+          <button
+            className="btn btn-big"
+            title={t(lang, "player.takeBack")}
+            onClick={takeBack}
+          >
+            ↩ {t(lang, "player.takeBack")}
           </button>
         )}
       </div>
@@ -293,7 +442,7 @@ export const PlayerView = ({
                       ? `translateY(${Math.min(0, drag.dy)}px) rotate(${
                           drag.dx / 20
                         }deg)`
-                      : selected === card._id
+                      : selected.has(card._id as CardId)
                         ? "translateY(-24px)"
                         : undefined,
                   }}
@@ -307,7 +456,7 @@ export const PlayerView = ({
                     suit={card.suit}
                     faceUp={true}
                     width={cardWidth}
-                    selected={selected === card._id}
+                    selected={selected.has(card._id as CardId)}
                     fourColor={fourColor}
                   />
                 </div>
@@ -318,38 +467,52 @@ export const PlayerView = ({
             )}
           </div>
 
-          {selected !== null && (
+          {selectedCards.length > 0 && (
             <div className="card-action-bar">
-              {canPlayToBoard && (
+              {canPlayToBoard && selectedCards.length > 1 && (
                 <button
                   className="btn btn-primary btn-big"
-                  onClick={() => playCard(selected, table.config.playFaceUp)}
+                  onClick={() =>
+                    playSet(
+                      selectedCards.map((c) => c._id as CardId),
+                      table.config.playFaceUp,
+                    )
+                  }
+                >
+                  {t(lang, "player.playSet", { count: selectedCards.length })}
+                </button>
+              )}
+              {canPlayToBoard && selectedCards.length === 1 && (
+                <button
+                  className="btn btn-primary btn-big"
+                  onClick={() =>
+                    playCard(selectedCards[0]!._id as CardId, table.config.playFaceUp)
+                  }
                 >
                   {t(lang, "player.play")}
                 </button>
               )}
-              {canPlayToBoard && (
+              {canPlayToBoard && selectedCards.length === 1 && (
                 <button
                   className="btn btn-big"
-                  onClick={() => playCard(selected, false)}
+                  onClick={() => playCard(selectedCards[0]!._id as CardId, false)}
                 >
                   {t(lang, "player.playFaceDown")}
                 </button>
               )}
-              {table.config.burnPile && (
+              {table.config.burnPile && selectedCards.length === 1 && (
                 <button
                   className={`btn btn-big${canPlayToBoard ? "" : " btn-primary"}`}
                   onClick={() => {
-                    removeFromHand(selected, () =>
-                      run(api.cards.burn, { cardId: selected }),
-                    );
-                    setSelected(null);
+                    const cardId = selectedCards[0]!._id as CardId;
+                    removeFromHand(cardId, () => run(api.cards.burn, { cardId }));
+                    setSelected(new Set());
                   }}
                 >
                   {t(lang, "player.burn")}
                 </button>
               )}
-              <button className="btn btn-big" onClick={() => setSelected(null)}>
+              <button className="btn btn-big" onClick={() => setSelected(new Set())}>
                 ✕
               </button>
             </div>
