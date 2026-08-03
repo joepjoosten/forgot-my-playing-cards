@@ -58,6 +58,18 @@ export const presets: ReadonlyArray<Preset> = [
     playToBoard: true,
     playFaceUp: true,
   }),
+  preset("duizenden", "💯", "preset.duizenden", {
+    // Two full decks with jokers, 13 cards each; one card is flipped open
+    // next to the stock, and melds are laid out on the table.
+    deckCount: 2,
+    jokersPerDeck: 2,
+    dealPerPlayer: 13,
+    stockPile: true,
+    burnPile: true,
+    playToBoard: true,
+    playFaceUp: true,
+    startBurnCount: 1,
+  }),
   preset("hearts", "♥️", "preset.hearts", {
     deckCount: 1,
     jokersPerDeck: 0,
