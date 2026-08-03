@@ -46,7 +46,7 @@ window.addEventListener("message", (event: MessageEvent) => {
 
 addButton.addEventListener("click", addPlayer);
 
-// The table iframe starts on the normal creation form (dev flag makes it
-// post `fmpc:table-created` back up); configure the table there and the
-// player iframes spawn on create.
+// The table iframe starts on the landing screen; tapping "create a table"
+// carries the dev flag through to the form, which posts `fmpc:table-created`
+// back up so the player iframes spawn on create.
 tableFrame.src = appUrl("/?dev=1");

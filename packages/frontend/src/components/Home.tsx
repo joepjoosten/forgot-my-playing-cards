@@ -1,284 +1,53 @@
 import { useState } from "react";
-import { api } from "@backend/convex/_generated/api";
-import { convex } from "../convex";
 import { navigate } from "../route";
-import { defaultConfig, type TableConfig } from "../model";
-import { detectLanguage, languages, t, type Language } from "../i18n";
-
-const shuffleKinds = ["riffle", "overhand", "fisher-yates", "cut", "none"] as const;
+import { langFromParam, languages, t, type Language } from "../i18n";
 
 export const Home = ({ params }: { params?: URLSearchParams }) => {
-  // The creating client's browser language is the starting point; the
-  // switcher below changes this screen live and becomes the table language.
-  const [lang, setLang] = useState(detectLanguage);
-  const [name, setName] = useState(() => t(detectLanguage(), "home.defaultTableName"));
-  const [config, setConfig] = useState<TableConfig>(defaultConfig);
-  const [creating, setCreating] = useState(false);
-  const [joinCode, setJoinCode] = useState("");
-  const [joinError, setJoinError] = useState(false);
-  const [lookingUp, setLookingUp] = useState(false);
+  // Landing screen: pick a table to join or make a new one. The language chosen
+  // here is carried over to whichever screen you open next.
+  const [lang, setLang] = useState(() => langFromParam(params?.get("lang")));
 
-  const joinByCode = async () => {
-    if (lookingUp || joinCode.trim() === "") return;
-    setLookingUp(true);
-    setJoinError(false);
-    try {
-      const found = await convex.query(api.tables.byCode, { code: joinCode });
-      if (found === null) {
-        setJoinError(true);
-      } else {
-        navigate(`/join/${found._id}`);
-      }
-    } catch (error) {
-      console.error(error);
-      setJoinError(true);
-    } finally {
-      setLookingUp(false);
-    }
-  };
-
-  const patch = (partial: Partial<TableConfig>) =>
-    setConfig((c) => ({ ...c, ...partial }));
-
-  const switchLanguage = (next: Language) => {
-    // Carry the untouched default table name over to the new language.
-    if (name === t(lang, "home.defaultTableName")) {
-      setName(t(next, "home.defaultTableName"));
-    }
-    setLang(next);
-  };
-
-  const create = async () => {
-    if (creating) return;
-    setCreating(true);
-    try {
-      const tableId = await convex.mutation(api.tables.create, {
-        name: name.trim() === "" ? t(lang, "home.fallbackTableName") : name.trim(),
-        config,
-        language: lang,
-      });
-      // dev.html hosts this form in an iframe (#/?dev=1) and spawns
-      // player iframes once it learns the new table's id.
-      if (params?.get("dev") === "1") {
-        window.parent?.postMessage({ type: "fmpc:table-created", tableId }, "*");
-      }
-      navigate(`/table/${tableId}`);
-    } catch (error) {
-      console.error(error);
-      setCreating(false);
-    }
+  const go = (path: string) => {
+    const query = new URLSearchParams();
+    query.set("lang", lang);
+    // Keep the dev flag alive so the local test page keeps working.
+    if (params?.get("dev") === "1") query.set("dev", "1");
+    navigate(`/${path}?${query.toString()}`);
   };
 
   return (
     <div className="page home-page">
-      <h1 className="app-title">🃏 Forgot My Playing Cards</h1>
-      <p className="app-subtitle">{t(lang, "home.subtitle")}</p>
+      <header className="home-bar">
+        <h1 className="home-bar-title">🃏 Forgot My Playing Cards</h1>
+        <select
+          className="lang-select home-bar-lang"
+          value={lang}
+          onChange={(e) => setLang(e.target.value as Language)}
+          aria-label={t(lang, "home.language")}
+        >
+          {languages.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </header>
 
-      <div className="panel">
-        <span className="panel-title">{t(lang, "home.joinTitle")}</span>
-        <div className="join-code-row">
-          <input
-            className="join-code-input"
-            value={joinCode}
-            onChange={(e) => {
-              setJoinCode(e.target.value.toUpperCase());
-              setJoinError(false);
-            }}
-            placeholder={t(lang, "home.joinCode")}
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-            maxLength={8}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void joinByCode();
-            }}
-          />
-          <button
-            className="btn btn-primary btn-big"
-            disabled={lookingUp || joinCode.trim() === ""}
-            onClick={() => void joinByCode()}
-          >
-            {t(lang, "home.joinGo")}
-          </button>
-        </div>
-        {joinError && <p className="join-error">{t(lang, "home.codeNotFound")}</p>}
-      </div>
-
-      <div className="panel">
-        <label className="field">
-          <span>🌐 {t(lang, "home.language")}</span>
-          <select
-            value={lang}
-            onChange={(e) => switchLanguage(e.target.value as Language)}
-          >
-            {languages.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="field">
-          <span>{t(lang, "home.tableName")}</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t(lang, "home.tableNamePlaceholder")}
-          />
-        </label>
-
-        <div className="field-row">
-          <label className="field">
-            <span>{t(lang, "home.decks")}</span>
-            <NumberStepper
-              value={config.deckCount}
-              min={1}
-              max={8}
-              onChange={(deckCount) => patch({ deckCount })}
-            />
-          </label>
-          <label className="field">
-            <span>{t(lang, "home.jokersPerDeck")}</span>
-            <NumberStepper
-              value={config.jokersPerDeck}
-              min={0}
-              max={4}
-              onChange={(jokersPerDeck) => patch({ jokersPerDeck })}
-            />
-          </label>
-        </div>
-
-        <div className="field-row">
-          <label className="field">
-            <span>{t(lang, "home.shuffle")}</span>
-            <select
-              value={config.shuffle}
-              onChange={(e) =>
-                patch({ shuffle: e.target.value as TableConfig["shuffle"] })
-              }
-            >
-              {shuffleKinds.map((kind) => (
-                <option key={kind} value={kind}>
-                  {t(lang, `home.shuffle.${kind}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>{t(lang, "home.passes")}</span>
-            <NumberStepper
-              value={config.shufflePasses}
-              min={1}
-              max={20}
-              onChange={(shufflePasses) => patch({ shufflePasses })}
-            />
-          </label>
-        </div>
-
-        <div className="field-row">
-          <label className="field">
-            <span>{t(lang, "home.dealPerPlayer")}</span>
-            <NumberStepper
-              value={config.dealPerPlayer}
-              min={0}
-              max={30}
-              onChange={(dealPerPlayer) => patch({ dealPerPlayer })}
-            />
-          </label>
-          <label className="field">
-            <span>{t(lang, "home.cardColors")}</span>
-            <select
-              value={config.fourColor === true ? "4" : "2"}
-              onChange={(e) => patch({ fourColor: e.target.value === "4" })}
-            >
-              <option value="2">{t(lang, "home.colors2")}</option>
-              <option value="4">{t(lang, "home.colors4")}</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="field-row toggles">
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={config.stockPile}
-              onChange={(e) => patch({ stockPile: e.target.checked })}
-            />
-            <span>{t(lang, "home.stockPile")}</span>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={config.burnPile}
-              disabled={config.playToBoard === false}
-              onChange={(e) => patch({ burnPile: e.target.checked })}
-            />
-            <span>{t(lang, "home.burnPile")}</span>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={config.playToBoard !== false}
-              onChange={(e) =>
-                // Burn-only tables need the burn pile: cards must go somewhere.
-                patch(
-                  e.target.checked
-                    ? { playToBoard: true }
-                    : { playToBoard: false, burnPile: true },
-                )
-              }
-            />
-            <span>{t(lang, "home.playToBoard")}</span>
-          </label>
-          {config.playToBoard !== false && (
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={config.playFaceUp}
-                onChange={(e) => patch({ playFaceUp: e.target.checked })}
-              />
-              <span>{t(lang, "home.playFaceUp")}</span>
-            </label>
-          )}
-        </div>
-
-        <button className="btn btn-primary btn-big" onClick={create} disabled={creating}>
-          {creating ? t(lang, "home.creating") : t(lang, "home.create")}
+      <div className="home-tiles">
+        <button className="home-tile" onClick={() => go("joincode")}>
+          <span className="home-tile-icon">🚪</span>
+          <span className="home-tile-label">{t(lang, "home.tileJoin")}</span>
+          <span className="home-tile-sub">{t(lang, "home.tileJoinSub")}</span>
+        </button>
+        <button className="home-tile" onClick={() => go("create")}>
+          <span className="home-tile-icon">➕</span>
+          <span className="home-tile-label">{t(lang, "home.tileCreate")}</span>
+          <span className="home-tile-sub">{t(lang, "home.tileCreateSub")}</span>
         </button>
       </div>
 
-      <p className="hint">{t(lang, "home.hint")}</p>
+      {/* Room for later: recent tables, rules, a strip of small tabs, … */}
+      <div className="home-extra" />
     </div>
   );
 };
-
-const NumberStepper = ({
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-}) => (
-  <div className="stepper">
-    <button
-      type="button"
-      className="btn stepper-btn"
-      onClick={() => onChange(Math.max(min, value - 1))}
-    >
-      −
-    </button>
-    <span className="stepper-value">{value}</span>
-    <button
-      type="button"
-      className="btn stepper-btn"
-      onClick={() => onChange(Math.min(max, value + 1))}
-    >
-      +
-    </button>
-  </div>
-);
