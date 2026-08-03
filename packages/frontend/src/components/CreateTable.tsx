@@ -3,6 +3,7 @@ import { api } from "@backend/convex/_generated/api";
 import { convex } from "../convex";
 import { navigate } from "../route";
 import { defaultConfig, type TableConfig } from "../model";
+import { presets, matchingPresetId, type Preset } from "../presets";
 import { langFromParam, languages, t, type Language } from "../i18n";
 
 const shuffleKinds = ["riffle", "overhand", "fisher-yates", "cut", "none"] as const;
@@ -22,12 +23,18 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
   const [open, setOpen] = useState<Record<string, boolean>>({ cards: true });
 
   const isUno = config.deckType === "uno";
+  // Highlight a preset only while the config still matches it exactly; any
+  // manual tweak below makes the config diverge and clears the highlight.
+  const activePreset = matchingPresetId(config);
 
   const toggle = (id: string) =>
     setOpen((o) => ({ ...o, [id]: o[id] !== true }));
 
   const patch = (partial: Partial<TableConfig>) =>
     setConfig((c) => ({ ...c, ...partial }));
+
+  // Presets fill only the settings, never the table name.
+  const applyPreset = (p: Preset) => setConfig(p.config);
 
   const switchLanguage = (next: Language) => {
     // Carry the untouched default table name over to the new language.
@@ -90,6 +97,23 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
             placeholder={t(lang, "home.tableNamePlaceholder")}
           />
         </label>
+      </div>
+
+      <div className="panel preset-panel">
+        <span className="panel-title">{t(lang, "home.presets")}</span>
+        <div className="preset-row">
+          {presets.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`preset-chip${activePreset === p.id ? " is-active" : ""}`}
+              onClick={() => applyPreset(p)}
+            >
+              <span className="preset-chip-icon">{p.icon}</span>
+              <span>{t(lang, p.labelKey)}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="panel accordion">

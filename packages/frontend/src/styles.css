@@ -1128,6 +1128,48 @@ select {
   opacity: 0.6;
 }
 
+/* ---------- presets (create screen) ---------- */
+
+.preset-panel {
+  gap: 12px;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #f4f1e8;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.preset-chip:active {
+  transform: scale(0.97);
+}
+
+.preset-chip.is-active {
+  background: #e6c53c;
+  border-color: #e6c53c;
+  color: #3a2f05;
+}
+
+.preset-chip-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+
 /* ---------- accordion (create screen) ---------- */
 
 .accordion {
