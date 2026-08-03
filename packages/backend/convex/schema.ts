@@ -34,6 +34,9 @@ export const tableConfig = v.object({
   // When false, cards can only be discarded to the burn pile — nothing
   // is played onto the table (defaults to true).
   playToBoard: v.optional(v.boolean()),
+  // How many cards are flipped face-up onto the burn pile right after the
+  // deal (the "open card" many games start with). Defaults to 0.
+  startBurnCount: v.optional(v.number()),
 });
 
 export const language = v.union(v.literal("en"), v.literal("nl"));
@@ -48,6 +51,9 @@ export default defineSchema({
     language: v.optional(language),
     // Short human-typeable join code (5 chars, unambiguous alphabet).
     code: v.optional(v.string()),
+    // A purely visual turn marker the table can pass around; the platform
+    // never enforces whose turn it is.
+    turnPlayerId: v.optional(v.id("players")),
   }).index("by_code", ["code"]),
 
   players: defineTable({
@@ -58,6 +64,9 @@ export default defineSchema({
     // Position of the player around the board, as fractions of the board size.
     x: v.number(),
     y: v.number(),
+    // Running total on the scoreboard; entered by the players themselves,
+    // the platform never computes it.
+    score: v.optional(v.number()),
   }).index("by_table", ["tableId"]),
 
   /** Short-lived notifications so the table can animate what just
@@ -67,12 +76,18 @@ export default defineSchema({
     kind: v.union(
       v.literal("draw"),
       v.literal("takeBurn"),
+      v.literal("takeBurnAll"),
       v.literal("play"),
       v.literal("burn"),
+      v.literal("pickUp"),
     ),
     playerId: v.id("players"),
     // For "play": which card and where it landed on the board.
     cardId: v.optional(v.id("cards")),
+    // A multi-card play (a set): every card gets its own flight, landing
+    // fanned out from slotStart onwards.
+    cardIds: v.optional(v.array(v.id("cards"))),
+    slotStart: v.optional(v.number()),
     x: v.optional(v.number()),
     y: v.optional(v.number()),
   }).index("by_table", ["tableId"]),
@@ -91,6 +106,10 @@ export default defineSchema({
     ownerId: v.optional(v.id("players")),
     // Order inside an ordered zone (stock/burn: bottom -> top, hand: left -> right).
     order: v.number(),
+    // Board cards can sit in a named group (a meld / row laid on the table):
+    // members share the group's x/y origin and are fanned out by slot.
+    groupId: v.optional(v.string()),
+    slot: v.optional(v.number()),
     // Position on the board, as fractions of the board size.
     x: v.number(),
     y: v.number(),
