@@ -24,6 +24,36 @@ const suitClass = (suit: string, fourColor: boolean): string => {
   return suit === "♥" || suit === "♦" ? "card-red" : "card-black";
 };
 
+/**
+ * A card that turns over with a quick rotateY animation (mirrored through
+ * its vertical centre) whenever `faceUp` changes — both faces are always
+ * rendered, so the browser can animate between them.
+ */
+export const FlipCard = ({
+  rank,
+  suit,
+  faceUp,
+  width,
+  fourColor,
+}: Omit<CardViewProps, "selected">) => (
+  <div className="flip-card" style={{ width, height: width * 1.4 }}>
+    <div className={`flip-card-inner${faceUp ? "" : " flip-card-down"}`}>
+      <div className="flip-card-face">
+        <CardView
+          rank={rank}
+          suit={suit}
+          faceUp={true}
+          width={width}
+          fourColor={fourColor}
+        />
+      </div>
+      <div className="flip-card-face flip-card-backside">
+        <CardView rank="" suit="" faceUp={false} width={width} />
+      </div>
+    </div>
+  </div>
+);
+
 export const CardView = ({
   rank,
   suit,

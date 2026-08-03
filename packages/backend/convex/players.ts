@@ -94,6 +94,28 @@ export const shiftSeat = mutation({
   },
 });
 
+/** Manually entered scoreboard total — the platform never does the math. */
+export const setScore = mutation({
+  args: { playerId: v.id("players"), score: v.number() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.playerId, { score: args.score });
+  },
+});
+
+/** Wipe every score at the table (starting a fresh game). */
+export const resetScores = mutation({
+  args: { tableId: v.id("tables") },
+  handler: async (ctx, args) => {
+    const players = await ctx.db
+      .query("players")
+      .withIndex("by_table", (q) => q.eq("tableId", args.tableId))
+      .collect();
+    for (const player of players) {
+      await ctx.db.patch(player._id, { score: undefined });
+    }
+  },
+});
+
 /** Remove a player; their hand goes face-down under the stock pile. */
 export const leave = mutation({
   args: { playerId: v.id("players") },
@@ -122,6 +144,11 @@ export const leave = mutation({
         order: bottom,
         faceUp: false,
       });
+    }
+
+    const table = await ctx.db.get(player.tableId);
+    if (table?.turnPlayerId === args.playerId) {
+      await ctx.db.patch(player.tableId, { turnPlayerId: undefined });
     }
 
     await ctx.db.delete(args.playerId);

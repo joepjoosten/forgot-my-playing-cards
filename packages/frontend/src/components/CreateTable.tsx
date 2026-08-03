@@ -153,6 +153,20 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
           </label>
         </div>
 
+        {config.burnPile && (
+          <div className="field-row">
+            <label className="field">
+              <span>{t(lang, "home.startBurnCount")}</span>
+              <NumberStepper
+                value={config.startBurnCount ?? 0}
+                min={0}
+                max={10}
+                onChange={(startBurnCount) => patch({ startBurnCount })}
+              />
+            </label>
+          </div>
+        )}
+
         <div className="field-row toggles">
           <label className="toggle">
             <input
