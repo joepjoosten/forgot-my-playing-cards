@@ -150,6 +150,9 @@ export const leave = mutation({
     if (table?.turnPlayerId === args.playerId) {
       await ctx.db.patch(player.tableId, { turnPlayerId: undefined });
     }
+    if (table?.dealerPlayerId === args.playerId) {
+      await ctx.db.patch(player.tableId, { dealerPlayerId: undefined });
+    }
 
     await ctx.db.delete(args.playerId);
   },

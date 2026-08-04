@@ -18,7 +18,7 @@ const pileWidth = (boardWidth: number): number =>
 const pileGap = (boardWidth: number): number => pileWidth(boardWidth) * 0.375;
 
 interface Drag {
-  kind: "card" | "player" | "group";
+  kind: "card" | "player" | "group" | "dealer";
   id: string;
   /** Position of the dragged object's origin (not the pointer). */
   x: number;
@@ -114,6 +114,8 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   // Cards this screen dragged onto a player disk: their pickUp event skips
   // the flight animation (the drag itself already showed the move).
   const localPickUps = useRef<Set<string>>(new Set());
+  // The dealer button stays on its new holder while the server confirms.
+  const [pendingDealer, setPendingDealer] = useState<PlayerId | null>(null);
   // Dropped positions we still render locally until the server echoes the
   // move back — otherwise the item briefly jumps to its stale position.
   const [pending, setPending] = useState<Record<string, { x: number; y: number }>>({});
@@ -228,6 +230,10 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   const canPlayToBoard = table.config.playToBoard !== false;
   const joinLink = absoluteLink(`/join/${tableId}`);
   const inLobby = table.status === "lobby";
+  const turnEnabled = table.config.turnMarker === true;
+  const dealerEnabled = table.config.dealerButton === true;
+  const dealerId = pendingDealer ?? table.dealerPlayerId;
+  const boardScale = Math.max(1, Math.min(1.7, (boardWidth || 800) / 800));
 
   const cardW = Math.max(48, (boardWidth || 800) * CARD_WIDTH_FRACTION);
   const cardH = cardW * 1.4;
@@ -325,10 +331,12 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
     kind: "player" | "group" | "card";
     id: string;
   } | null =
-    drag !== null && drag.kind === "card" && drag.moved
+    drag !== null && (drag.kind === "card" || drag.kind === "dealer") && drag.moved
       ? (() => {
           const receiver = playerAt(drag.x, drag.y);
           if (receiver !== null) return { kind: "player" as const, id: receiver._id };
+          // The dealer button only lands on players.
+          if (drag.kind === "dealer") return null;
           const group = groupAt(drag.x, drag.y);
           if (group !== null) return { kind: "group" as const, id: group.id };
           const target = looseCardAt(drag.x, drag.y, drag.id);
@@ -467,6 +475,15 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           }),
         );
       }
+    } else if (drag.kind === "dealer") {
+      // The dealer button lands on a player or snaps back to its holder.
+      if (drag.moved && dropTarget?.kind === "player") {
+        const receiver = dropTarget.id as PlayerId;
+        setPendingDealer(receiver);
+        void run(api.tables.setDealer, { tableId, playerId: receiver }).finally(
+          () => setPendingDealer(null),
+        );
+      }
     } else if (drag.moved) {
       moveWithOverride(drag.id, drag.x, drag.y, () =>
         run(api.players.move, {
@@ -475,7 +492,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           y: drag.y,
         }),
       );
-    } else {
+    } else if (turnEnabled) {
       // A tap on a player disk passes the turn marker (tap again to clear).
       const playerId = drag.id as PlayerId;
       void run(api.tables.setTurn, {
@@ -817,6 +834,41 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               </div>
             );
           })}
+
+          {/* the dealer button: parked in the middle until it is dragged
+              onto a player, then anchored beside their disk */}
+          {dealerEnabled &&
+            (() => {
+              const holder = players.find((p: Player) => p._id === dealerId);
+              const isDragged = drag?.kind === "dealer";
+              const holderPos =
+                holder === undefined
+                  ? null
+                  : dragPosition("player", holder._id, holder.x, holder.y);
+              const style = isDragged
+                ? { left: `${drag.x * 100}%`, top: `${drag.y * 100}%` }
+                : holderPos !== null
+                  ? {
+                      left: `calc(${holderPos.x * 100}% + ${46 * boardScale}px)`,
+                      top: `calc(${holderPos.y * 100}% - ${34 * boardScale}px)`,
+                    }
+                  : { left: "50%", top: "66%" };
+              return (
+                <div
+                  className="dealer-chip"
+                  style={{
+                    ...style,
+                    transform: `translate(-50%, -50%) scale(${boardScale})`,
+                  }}
+                  onPointerDown={startDrag("dealer", "dealer")}
+                  onPointerMove={onDragMove}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                >
+                  D
+                </div>
+              );
+            })()}
         </div>
 
         {showScores && (

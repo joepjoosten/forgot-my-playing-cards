@@ -21,6 +21,8 @@ export const defaultConfig: TableConfig = {
   fourColor: false,
   playToBoard: true,
   startBurnCount: 0,
+  turnMarker: false,
+  dealerButton: false,
 };
 
 export const storedPlayerKey = (tableId: string) => `fmpc:player:${tableId}`;

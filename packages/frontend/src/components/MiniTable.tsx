@@ -123,6 +123,7 @@ export const MiniTable = ({ table, players, cards, targeting }: MiniTableProps) 
         >
           <span className="mini-player-name">
             {table.turnPlayerId === player._id ? "▶ " : ""}
+            {table.dealerPlayerId === player._id ? "Ⓓ " : ""}
             {player.name}
             {player.score !== undefined ? ` · ${player.score}` : ""}
           </span>

@@ -301,6 +301,9 @@ export const PlayerView = ({
         {isMyTurn && (
           <span className="player-turn-badge">▶ {t(lang, "player.yourTurn")}</span>
         )}
+        {table.dealerPlayerId === playerId && (
+          <span className="player-dealer-badge">{t(lang, "player.dealer")}</span>
+        )}
         <span className="player-table-name">{table.name}</span>
         <span className="player-hand-count">
           {t(lang, "player.cards", { count: hand.length })}
