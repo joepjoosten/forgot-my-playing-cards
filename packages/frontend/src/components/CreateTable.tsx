@@ -284,6 +284,25 @@ export const CreateTable = ({ params }: { params?: URLSearchParams }) => {
               />
             </label>
           )}
+
+          <div className="field-row toggles">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={config.turnMarker === true}
+                onChange={(e) => patch({ turnMarker: e.target.checked })}
+              />
+              <span>{t(lang, "home.turnMarker")}</span>
+            </label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={config.dealerButton === true}
+                onChange={(e) => patch({ dealerButton: e.target.checked })}
+              />
+              <span>{t(lang, "home.dealerButton")}</span>
+            </label>
+          </div>
         </Section>
       </div>
 

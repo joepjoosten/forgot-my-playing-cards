@@ -42,6 +42,8 @@ const en = {
   "home.stockPile": "Stock pile (draw cards)",
   "home.burnPile": "Burn pile (discard)",
   "home.startBurnCount": "Open cards at start",
+  "home.turnMarker": "Turn marker (tap a player to pass it)",
+  "home.dealerButton": "Dealer button (drag it onto a player)",
   "home.playToBoard": "Play cards onto the table",
   "home.playFaceUp": "Play cards face up",
   "home.create": "Create table",
@@ -130,6 +132,7 @@ const en = {
   "player.revealHand": "Lay your hand open on the table",
   "player.revealConfirm": "Lay your whole hand face up on the table?",
   "player.yourTurn": "Your turn",
+  "player.dealer": "Dealer",
   "player.takeBack": "Take back",
   "player.tapTable":
     "Tap a row on the table to add your cards · tap a loose card to start a row · tap empty felt to lay them there",
@@ -166,6 +169,8 @@ const nl: Record<MessageKey, string> = {
   "home.stockPile": "Trekstapel (kaarten pakken)",
   "home.burnPile": "Aflegstapel (weggooien)",
   "home.startBurnCount": "Open kaarten bij start",
+  "home.turnMarker": "Beurt-markering (tik op een speler om door te geven)",
+  "home.dealerButton": "Dealerknop (sleep hem naar een speler)",
   "home.playToBoard": "Kaarten op tafel spelen",
   "home.playFaceUp": "Kaarten open spelen",
   "home.create": "Tafel aanmaken",
@@ -254,6 +259,7 @@ const nl: Record<MessageKey, string> = {
   "player.revealHand": "Je hand open op tafel leggen",
   "player.revealConfirm": "Je hele hand open op tafel leggen?",
   "player.yourTurn": "Jouw beurt",
+  "player.dealer": "Deler",
   "player.takeBack": "Terugnemen",
   "player.tapTable":
     "Tik op een serie om aan te leggen · tik op een losse kaart om een serie te starten · tik op leeg vilt om ze daar neer te leggen",
