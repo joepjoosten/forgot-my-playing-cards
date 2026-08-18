@@ -11,6 +11,16 @@ body,
   overscroll-behavior: none;
 }
 
+/* In standalone (home-screen) mode `100%` can come up short of the real
+   viewport, leaving a white strip behind the home indicator. dvh tracks
+   the true dynamic viewport (vh is the fallback), and the dark backdrop
+   covers any overscroll gap. */
+html {
+  height: 100vh;
+  height: 100dvh;
+  background: #0d3f27;
+}
+
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: radial-gradient(circle at 50% 30%, #1e7a4f 0%, #145a39 55%, #0d3f27 100%);
