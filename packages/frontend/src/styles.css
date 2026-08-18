@@ -488,6 +488,10 @@ select {
   border-radius: 8px;
 }
 
+.pile.drop-target {
+  border-radius: 10px;
+}
+
 .board-group-ring {
   position: absolute;
   left: 0;

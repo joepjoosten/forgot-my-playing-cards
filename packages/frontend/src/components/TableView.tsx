@@ -314,21 +314,44 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
     return hits.reduce((a, b) => (b.z > a.z ? b : a));
   };
 
+  /** The pile (stock or burn) whose card area contains the given board point. */
+  const pileAt = (fx: number, fy: number): "stock" | "burn" | null => {
+    const rect = boardRef.current?.getBoundingClientRect();
+    if (rect === undefined) return null;
+    const px = fx * rect.width;
+    const py = fy * rect.height;
+    const w = pileWidth(rect.width);
+    const both = table.config.stockPile && table.config.burnPile;
+    const half = (w + pileGap(rect.width)) / 2;
+    const hit = (cx: number) =>
+      Math.abs(px - cx) <= w / 2 + 8 &&
+      Math.abs(py - rect.height / 2) <= (w * 1.4) / 2 + 8;
+    if (table.config.stockPile && hit(rect.width / 2 + (both ? -half : 0))) {
+      return "stock";
+    }
+    if (table.config.burnPile && hit(rect.width / 2 + (both ? half : 0))) {
+      return "burn";
+    }
+    return null;
+  };
+
   /**
    * Where the dragged card would land right now — the ring shown while
    * dragging and the action taken on drop both come from this one value,
    * so what the user sees is always what they get. Priority: player disk,
-   * meld row (its own row included: the card returns to the end of it),
-   * loose card.
+   * pile (burn or back onto the stock), meld row (its own row included:
+   * the card returns to the end of it), loose card.
    */
   const dropTarget: {
-    kind: "player" | "group" | "card";
+    kind: "player" | "pile" | "group" | "card";
     id: string;
   } | null =
     drag !== null && drag.kind === "card" && drag.moved
       ? (() => {
           const receiver = playerAt(drag.x, drag.y);
           if (receiver !== null) return { kind: "player" as const, id: receiver._id };
+          const pile = pileAt(drag.x, drag.y);
+          if (pile !== null) return { kind: "pile" as const, id: pile };
           const group = groupAt(drag.x, drag.y);
           if (group !== null) return { kind: "group" as const, id: group.id };
           const target = looseCardAt(drag.x, drag.y, drag.id);
@@ -401,6 +424,15 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               cardId: drag.id as CardId,
               playerId: dropTarget.id as PlayerId,
             }),
+          );
+        } else if (dropTarget !== null && dropTarget.kind === "pile") {
+          // Onto a pile: the card goes on top of the burn pile, or back
+          // onto the stock face down. Pin it at the drop point until the
+          // server takes it off the board — no snap back.
+          moveWithOverride(drag.id, drag.x, drag.y, () =>
+            dropTarget.id === "burn"
+              ? run(api.cards.burn, { cardId: drag.id as CardId })
+              : run(api.cards.toStock, { cardId: drag.id as CardId }),
           );
         } else if (dropTarget !== null && dropTarget.kind === "group") {
           // Onto a meld row (possibly its own): the card slides in at the
@@ -583,7 +615,13 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           {/* piles */}
           <div className="piles" style={{ gap: pileGap(boardWidth) }}>
             {table.config.stockPile && (
-              <div className="pile">
+              <div
+                className={`pile${
+                  dropTarget?.kind === "pile" && dropTarget.id === "stock"
+                    ? " drop-target"
+                    : ""
+                }`}
+              >
                 {cards.stockCount > 0 ? (
                   <CardView rank="" suit="" faceUp={false} width={pileWidth(boardWidth)} />
                 ) : (
@@ -604,7 +642,13 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               </div>
             )}
             {table.config.burnPile && (
-              <div className="pile">
+              <div
+                className={`pile${
+                  dropTarget?.kind === "pile" && dropTarget.id === "burn"
+                    ? " drop-target"
+                    : ""
+                }`}
+              >
                 {cards.burnTop !== null ? (
                   <CardView
                     rank={cards.burnTop.rank}

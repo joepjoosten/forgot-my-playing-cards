@@ -250,6 +250,31 @@ export const burn = mutation({
   },
 });
 
+/** Put a card (from hand or board) back on top of the stock pile, face down. */
+export const toStock = mutation({
+  args: { cardId: v.id("cards") },
+  handler: async (ctx, args) => {
+    const card = await ctx.db.get(args.cardId);
+    if (card === null) return;
+    const pile = await ctx.db
+      .query("cards")
+      .withIndex("by_table_zone", (q) =>
+        q.eq("tableId", card.tableId).eq("zone", "stock"),
+      )
+      .collect();
+    const top = pile.reduce((max, c) => Math.max(max, c.order), -1) + 1;
+    await leaveGroup(ctx, card);
+    await ctx.db.patch(args.cardId, {
+      zone: "stock",
+      ownerId: undefined,
+      groupId: undefined,
+      slot: undefined,
+      order: top,
+      faceUp: false,
+    });
+  },
+});
+
 /** Drag a card that lies on the board (out of its group, if it was in one). */
 export const moveOnBoard = mutation({
   args: { cardId: v.id("cards"), x: v.number(), y: v.number() },
