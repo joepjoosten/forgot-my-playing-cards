@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAtomValue } from "@effect/atom-react";
 import { api } from "@backend/convex/_generated/api";
 import { convexQuery, run } from "../convex";
@@ -8,6 +8,7 @@ import { fullscreenAvailable, toggleFullscreen } from "../fullscreen";
 import { detectLanguage, t } from "../i18n";
 import { navigate } from "../route";
 import { useServerEcho } from "../useServerEcho";
+import { useElementWidth } from "../useElementWidth";
 import { storedPlayerKey, type Card, type CardId, type PlayerId, type TableId } from "../model";
 
 const THROW_DISTANCE = 90;
@@ -51,7 +52,8 @@ export const PlayerView = ({
   // Cards this phone played onto the board, most recent last — the take-back
   // button undoes them one at a time. Only your own plays can be undone.
   const [playedStack, setPlayedStack] = useState<ReadonlyArray<CardId>>([]);
-  const stripRef = useRef<HTMLDivElement>(null);
+  // Observed width so a rotation re-fits the hand rows to the new size.
+  const strip = useElementWidth();
 
   // A new deal invalidates whatever was played in the previous round.
   const round = table?.round;
@@ -88,7 +90,7 @@ export const PlayerView = ({
           (a, b) => localOrder.indexOf(a._id) - localOrder.indexOf(b._id),
         );
 
-  const stripWidth = stripRef.current?.clientWidth ?? window.innerWidth;
+  const stripWidth = strip.width || window.innerWidth;
   const cardWidth = Math.min(84, Math.max(56, stripWidth / 6));
   const cardHeight = cardWidth * 1.4;
   // Below this spacing the rank corner disappears under the next card, so
@@ -440,7 +442,7 @@ export const PlayerView = ({
           </p>
           <div
             className="hand-strip"
-            ref={stripRef}
+            ref={strip.attach}
             style={
               rows > 1
                 ? { minHeight: cardHeight + 32 + (rows - 1) * rowHeight }
