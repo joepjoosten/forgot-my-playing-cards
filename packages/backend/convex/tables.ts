@@ -1,9 +1,12 @@
 import { Effect } from "effect";
 import { mutation, query } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
 import { language, tableConfig } from "./schema";
-import { deal, mulberry32, prepareDeck, shuffle } from "./lib/deck";
+import { deal, mulberry32, prepareDeck, shuffle, type CardSpec } from "./lib/deck";
 import { circlePosition } from "./lib/layout";
+import { moveCards, zoneCards } from "./lib/zones";
 import { clearAll } from "./events";
 
 // No 0/O/1/I: every character is unambiguous when read from a screen.
@@ -88,6 +91,33 @@ export const setTurn = mutation({
   },
 });
 
+/** Insert one freshly dealt card; the overrides say where it starts. */
+const insertCard = (
+  ctx: MutationCtx,
+  tableId: Id<"tables">,
+  spec: CardSpec,
+  overrides: {
+    zone: Doc<"cards">["zone"];
+    order: number;
+    ownerId?: Id<"players">;
+    x?: number;
+    y?: number;
+    z?: number;
+    faceUp?: boolean;
+  },
+) =>
+  ctx.db.insert("cards", {
+    tableId,
+    deck: spec.deck,
+    rank: spec.rank,
+    suit: spec.suit,
+    x: 0.5,
+    y: 0.5,
+    z: 0,
+    faceUp: false,
+    ...overrides,
+  });
+
 /**
  * Start a (new) round: rebuild the decks, shuffle them according to the
  * table config (an Effect program), deal every player their cards and put
@@ -132,18 +162,10 @@ export const startRound = mutation({
       const player = players[p]!;
       const hand = hands[p] ?? [];
       for (let i = 0; i < hand.length; i++) {
-        const spec = hand[i]!;
-        await ctx.db.insert("cards", {
-          tableId: args.tableId,
-          deck: spec.deck,
-          rank: spec.rank,
-          suit: spec.suit,
+        await insertCard(ctx, args.tableId, hand[i]!, {
           zone: "hand",
           ownerId: player._id,
           order: i,
-          x: 0.5,
-          y: 0.5,
-          z: 0,
           faceUp: true,
         });
       }
@@ -156,49 +178,27 @@ export const startRound = mutation({
       : 0;
     const open = stock.splice(stock.length - openCount, openCount).reverse();
     for (let i = 0; i < open.length; i++) {
-      const spec = open[i]!;
-      await ctx.db.insert("cards", {
-        tableId: args.tableId,
-        deck: spec.deck,
-        rank: spec.rank,
-        suit: spec.suit,
+      await insertCard(ctx, args.tableId, open[i]!, {
         zone: "burn",
         order: i,
-        x: 0.5,
-        y: 0.5,
-        z: 0,
         faceUp: true,
       });
     }
 
     for (let i = 0; i < stock.length; i++) {
-      const spec = stock[i]!;
       if (table.config.stockPile) {
-        await ctx.db.insert("cards", {
-          tableId: args.tableId,
-          deck: spec.deck,
-          rank: spec.rank,
-          suit: spec.suit,
+        await insertCard(ctx, args.tableId, stock[i]!, {
           zone: "stock",
           order: i,
-          x: 0.5,
-          y: 0.5,
-          z: 0,
-          faceUp: false,
         });
       } else {
         // No stock pile: scatter the remaining cards face down on the board.
-        await ctx.db.insert("cards", {
-          tableId: args.tableId,
-          deck: spec.deck,
-          rank: spec.rank,
-          suit: spec.suit,
+        await insertCard(ctx, args.tableId, stock[i]!, {
           zone: "board",
           order: i,
           x: 0.2 + 0.6 * ((i * 37) % 100) / 100,
           y: 0.25 + 0.5 * ((i * 61) % 100) / 100,
           z: i,
-          faceUp: false,
         });
       }
     }
@@ -227,36 +227,15 @@ export const reshuffleBurn = mutation({
     const table = await ctx.db.get(args.tableId);
     if (table === null) throw new Error("Table not found");
 
-    const burn = await ctx.db
-      .query("cards")
-      .withIndex("by_table_zone", (q) =>
-        q.eq("tableId", args.tableId).eq("zone", "burn"),
-      )
-      .collect();
+    const burn = await zoneCards(ctx, args.tableId, "burn");
     if (burn.length === 0) return;
-
-    const stock = await ctx.db
-      .query("cards")
-      .withIndex("by_table_zone", (q) =>
-        q.eq("tableId", args.tableId).eq("zone", "stock"),
-      )
-      .collect();
 
     const seed = Math.floor(Math.random() * 0xffffffff);
     const shuffled = Effect.runSync(
       shuffle(burn, table.config.shuffle, table.config.shufflePasses, mulberry32(seed)),
     );
 
-    let bottom = stock.reduce((min, c) => Math.min(min, c.order), 0);
-    for (const card of shuffled) {
-      bottom--;
-      await ctx.db.patch(card._id, {
-        zone: "stock",
-        order: bottom,
-        ownerId: undefined,
-        faceUp: false,
-      });
-    }
+    await moveCards(ctx, shuffled, { zone: "stock", at: "bottom" });
   },
 });
 
@@ -270,45 +249,15 @@ export const gatherBoard = mutation({
     to: v.union(v.literal("burn"), v.literal("stock")),
   },
   handler: async (ctx, args) => {
-    const boardCards = (
-      await ctx.db
-        .query("cards")
-        .withIndex("by_table_zone", (q) =>
-          q.eq("tableId", args.tableId).eq("zone", "board"),
-        )
-        .collect()
-    ).sort((a, b) => a.z - b.z);
-
-    const pile = await ctx.db
-      .query("cards")
-      .withIndex("by_table_zone", (q) =>
-        q.eq("tableId", args.tableId).eq("zone", args.to),
-      )
-      .collect();
-
-    if (args.to === "burn") {
-      let top = pile.reduce((max, c) => Math.max(max, c.order), -1);
-      for (const card of boardCards) {
-        top++;
-        await ctx.db.patch(card._id, {
-          zone: "burn",
-          order: top,
-          ownerId: undefined,
-          faceUp: true,
-        });
-      }
-    } else {
-      // Slide the gathered cards under the current stock (they get drawn last).
-      let bottom = pile.reduce((min, c) => Math.min(min, c.order), 0);
-      for (const card of boardCards) {
-        bottom--;
-        await ctx.db.patch(card._id, {
-          zone: "stock",
-          order: bottom,
-          ownerId: undefined,
-          faceUp: false,
-        });
-      }
-    }
+    const boardCards = (await zoneCards(ctx, args.tableId, "board")).sort(
+      (a, b) => a.z - b.z,
+    );
+    // Gathered cards land on top of the burn, or slide under the current
+    // stock (they get drawn last).
+    await moveCards(
+      ctx,
+      boardCards,
+      args.to === "burn" ? { zone: "burn" } : { zone: "stock", at: "bottom" },
+    );
   },
 });

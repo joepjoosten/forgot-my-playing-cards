@@ -1,3 +1,6 @@
+/** Clamp a board-fraction coordinate into [0, 1]. */
+export const clamp01 = (n: number): number => Math.min(1, Math.max(0, n));
+
 /** Positions for players arranged in a circle around the board. */
 export const circlePosition = (
   seat: number,
