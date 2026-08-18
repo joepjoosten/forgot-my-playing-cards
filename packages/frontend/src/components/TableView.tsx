@@ -18,6 +18,7 @@ import {
   pileWidth,
 } from "../board";
 import { useServerEcho } from "../useServerEcho";
+import { useElementWidth } from "../useElementWidth";
 import type { Card, CardId, Player, PlayerId, TableId } from "../model";
 
 /** What is being dragged — the id keeps the type of its kind. */
@@ -108,20 +109,9 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   const cards = useAtomValue(convexQuery(api.cards.forTable, { tableId }));
   const events = useAtomValue(convexQuery(api.events.recent, { tableId }));
 
-  const boardRef = useRef<HTMLDivElement | null>(null);
-  const resizeObserver = useRef<ResizeObserver | null>(null);
-  const [boardWidth, setBoardWidth] = useState(0);
-  const attachBoard = (el: HTMLDivElement | null) => {
-    boardRef.current = el;
-    resizeObserver.current?.disconnect();
-    resizeObserver.current = null;
-    if (el !== null) {
-      const observer = new ResizeObserver(() => setBoardWidth(el.clientWidth));
-      observer.observe(el);
-      resizeObserver.current = observer;
-      setBoardWidth(el.clientWidth);
-    }
-  };
+  const board = useElementWidth();
+  const boardRef = board.elementRef;
+  const boardWidth = board.width;
   const [drag, setDrag] = useState<Drag | null>(null);
   // Double-tap detection for flipping a board card over.
   const lastTap = useRef<{ id: string; time: number } | null>(null);
@@ -601,7 +591,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
       </header>
 
       <div className="board-wrap">
-        <div className="board" ref={attachBoard}>
+        <div className="board" ref={board.attach}>
           {/* piles */}
           <div className="piles" style={{ gap: pileGap(boardWidth) }}>
             {table.config.stockPile && (
