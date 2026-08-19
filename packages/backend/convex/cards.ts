@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { emit } from "./events";
 import { clamp01 } from "./lib/layout";
+import { touchTable } from "./lib/activity";
 import {
   groupMembers,
   leaveGroup,
@@ -185,6 +186,8 @@ export const moveOnBoard = mutation({
       y: clamp01(args.y),
       z: await nextBoardZ(ctx, card.tableId),
     });
+    // Board-only fiddling never emits an event, so stamp activity here.
+    await touchTable(ctx, card.tableId);
   },
 });
 
@@ -205,6 +208,7 @@ export const moveGroup = mutation({
     for (const card of members) {
       await ctx.db.patch(card._id, { x, y, z: z++ });
     }
+    await touchTable(ctx, args.tableId);
   },
 });
 
@@ -214,6 +218,7 @@ export const flip = mutation({
     const card = await ctx.db.get(args.cardId);
     if (card === null) return;
     await ctx.db.patch(args.cardId, { faceUp: !card.faceUp });
+    await touchTable(ctx, card.tableId);
   },
 });
 
