@@ -61,6 +61,9 @@ export default defineSchema({
     turnPlayerId: v.optional(v.id("players")),
     // Who holds the dealer button (also purely visual).
     dealerPlayerId: v.optional(v.id("players")),
+    // When the table was last used (throttled; see lib/activity.ts) — the
+    // hourly cleanup deletes tables untouched for a day.
+    lastActiveAt: v.optional(v.number()),
   }).index("by_code", ["code"]),
 
   players: defineTable({

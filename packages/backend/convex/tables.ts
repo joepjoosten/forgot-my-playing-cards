@@ -7,6 +7,7 @@ import { language, tableConfig } from "./schema";
 import { deal, mulberry32, prepareDeck, shuffle, type CardSpec } from "./lib/deck";
 import { circlePosition } from "./lib/layout";
 import { moveCards, zoneCards } from "./lib/zones";
+import { touchTable } from "./lib/activity";
 import { clearAll } from "./events";
 
 // No 0/O/1/I: every character is unambiguous when read from a screen.
@@ -88,6 +89,7 @@ export const setTurn = mutation({
   args: { tableId: v.id("tables"), playerId: v.optional(v.id("players")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tableId, { turnPlayerId: args.playerId });
+    await touchTable(ctx, args.tableId);
   },
 });
 
@@ -96,6 +98,7 @@ export const setDealer = mutation({
   args: { tableId: v.id("tables"), playerId: v.optional(v.id("players")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.tableId, { dealerPlayerId: args.playerId });
+    await touchTable(ctx, args.tableId);
   },
 });
 
@@ -220,6 +223,7 @@ export const startRound = mutation({
     await ctx.db.patch(args.tableId, {
       status: "playing",
       round: table.round + 1,
+      lastActiveAt: Date.now(),
     });
   },
 });
