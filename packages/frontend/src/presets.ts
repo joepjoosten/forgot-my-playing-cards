@@ -29,6 +29,7 @@ export const presets: ReadonlyArray<Preset> = [
     stockPile: true,
     burnPile: true,
     playToBoard: false,
+    turnMarker: true,
   }),
   preset("pesten", "🃏", "preset.pesten", {
     deckCount: 1,
@@ -38,6 +39,7 @@ export const presets: ReadonlyArray<Preset> = [
     stockPile: true,
     burnPile: true,
     playToBoard: false,
+    turnMarker: true,
   }),
   preset("poker", "♠️", "preset.poker", {
     deckCount: 1,
@@ -48,6 +50,8 @@ export const presets: ReadonlyArray<Preset> = [
     burnPile: false,
     playToBoard: true,
     playFaceUp: true,
+    // The dealer button is what makes the blinds trackable.
+    dealerButton: true,
   }),
   preset("rummy", "🔢", "preset.rummy", {
     deckCount: 2,
@@ -57,6 +61,7 @@ export const presets: ReadonlyArray<Preset> = [
     burnPile: true,
     playToBoard: true,
     playFaceUp: true,
+    turnMarker: true,
   }),
   preset("duizenden", "💯", "preset.duizenden", {
     // Two full decks with jokers, 13 cards each; one card is flipped open
@@ -69,6 +74,7 @@ export const presets: ReadonlyArray<Preset> = [
     playToBoard: true,
     playFaceUp: true,
     startBurnCount: 1,
+    turnMarker: true,
   }),
   preset("hearts", "♥️", "preset.hearts", {
     deckCount: 1,
@@ -79,6 +85,7 @@ export const presets: ReadonlyArray<Preset> = [
     burnPile: true,
     playToBoard: true,
     playFaceUp: true,
+    turnMarker: true,
   }),
   preset("gofish", "🐟", "preset.gofish", {
     deckCount: 1,
@@ -89,6 +96,7 @@ export const presets: ReadonlyArray<Preset> = [
     burnPile: false,
     playToBoard: true,
     playFaceUp: true,
+    turnMarker: true,
   }),
   preset("free", "🎲", "preset.free", {
     // Sandbox: a full deck, nothing dealt, every option on.

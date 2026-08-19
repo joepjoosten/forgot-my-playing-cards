@@ -37,6 +37,11 @@ export const tableConfig = v.object({
   // How many cards are flipped face-up onto the burn pile right after the
   // deal (the "open card" many games start with). Defaults to 0.
   startBurnCount: v.optional(v.number()),
+  // Tracking tokens on the board (both purely visual, never enforced):
+  // a turn marker passed by tapping a player, and a poker-style dealer
+  // button dragged onto a player. Both default to off.
+  turnMarker: v.optional(v.boolean()),
+  dealerButton: v.optional(v.boolean()),
 });
 
 export const language = v.union(v.literal("en"), v.literal("nl"));
@@ -54,6 +59,8 @@ export default defineSchema({
     // A purely visual turn marker the table can pass around; the platform
     // never enforces whose turn it is.
     turnPlayerId: v.optional(v.id("players")),
+    // Who holds the dealer button (also purely visual).
+    dealerPlayerId: v.optional(v.id("players")),
   }).index("by_code", ["code"]),
 
   players: defineTable({

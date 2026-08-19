@@ -25,7 +25,8 @@ import type { Card, CardId, Player, PlayerId, TableId } from "../model";
 type DragTarget =
   | { kind: "card"; id: CardId }
   | { kind: "player"; id: PlayerId }
-  | { kind: "group"; id: string };
+  | { kind: "group"; id: string }
+  | { kind: "dealer"; id: "dealer" };
 
 type Drag = DragTarget & {
   /** Position of the dragged object's origin (not the pointer). */
@@ -118,6 +119,8 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   // Cards this screen dragged onto a player disk: their pickUp event skips
   // the flight animation (the drag itself already showed the move).
   const localPickUps = useRef<Set<string>>(new Set());
+  // The dealer button stays on its new holder while the server confirms.
+  const pendingDealer = useServerEcho<PlayerId>();
   // Dropped positions we still render locally until the server echoes the
   // move back — otherwise the item briefly jumps to its stale position.
   const pending = useServerEcho<{ x: number; y: number }>();
@@ -226,6 +229,9 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
   const canPlayToBoard = table.config.playToBoard !== false;
   const joinLink = absoluteLink(`/join/${tableId}`);
   const inLobby = table.status === "lobby";
+  const turnEnabled = table.config.turnMarker === true;
+  const dealerEnabled = table.config.dealerButton === true;
+  const dealerId = pendingDealer.get("dealer") ?? table.dealerPlayerId;
 
   const { w: cardW, h: cardH } = cardSize(boardWidth);
   const groupOffset = meldOffset(boardWidth);
@@ -334,10 +340,12 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
    * the card returns to the end of it), loose card.
    */
   const dropTarget: DropTarget | null =
-    drag !== null && drag.kind === "card" && drag.moved
+    drag !== null && (drag.kind === "card" || drag.kind === "dealer") && drag.moved
       ? (() => {
           const receiver = playerAt(drag.x, drag.y);
           if (receiver !== null) return { kind: "player" as const, id: receiver._id };
+          // The dealer button only lands on players.
+          if (drag.kind === "dealer") return null;
           const pile = pileAt(drag.x, drag.y);
           if (pile !== null) return { kind: "pile" as const, id: pile };
           const group = groupAt(drag.x, drag.y);
@@ -479,6 +487,13 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           }),
         );
       }
+    } else if (drag.kind === "dealer") {
+      // The dealer button lands on a player or snaps back to its holder.
+      if (drag.moved && dropTarget?.kind === "player") {
+        pendingDealer.apply({ dealer: dropTarget.id }, () =>
+          run(api.tables.setDealer, { tableId, playerId: dropTarget.id }),
+        );
+      }
     } else if (drag.moved) {
       moveWithOverride(drag.id, drag.x, drag.y, () =>
         run(api.players.move, {
@@ -487,7 +502,7 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
           y: drag.y,
         }),
       );
-    } else {
+    } else if (turnEnabled) {
       // A tap on a player disk passes the turn marker (tap again to clear).
       const playerId = drag.id;
       void run(api.tables.setTurn, {
@@ -841,6 +856,42 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
               </div>
             );
           })}
+
+          {/* the dealer button: parked in the middle until it is dragged
+              onto a player, then anchored beside their disk */}
+          {dealerEnabled &&
+            (() => {
+              const holder = players.find((p: Player) => p._id === dealerId);
+              const isDragged = drag?.kind === "dealer";
+              const scale = boardScale(boardWidth);
+              const holderPos =
+                holder === undefined
+                  ? null
+                  : dragPosition("player", holder._id, holder.x, holder.y);
+              const style = isDragged
+                ? { left: `${drag.x * 100}%`, top: `${drag.y * 100}%` }
+                : holderPos !== null
+                  ? {
+                      left: `calc(${holderPos.x * 100}% + ${46 * scale}px)`,
+                      top: `calc(${holderPos.y * 100}% - ${34 * scale}px)`,
+                    }
+                  : { left: "50%", top: "66%" };
+              return (
+                <div
+                  className="dealer-chip"
+                  style={{
+                    ...style,
+                    transform: `translate(-50%, -50%) scale(${scale})`,
+                  }}
+                  onPointerDown={startDrag({ kind: "dealer", id: "dealer" })}
+                  onPointerMove={onDragMove}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                >
+                  D
+                </div>
+              );
+            })()}
         </div>
 
         {showScores && (
@@ -881,7 +932,9 @@ export const TableView = ({ tableId }: { tableId: TableId }) => {
                 </div>
               );
             })}
-            <p className="score-hint">{t(lang, "table.turnHint")}</p>
+            {turnEnabled && (
+              <p className="score-hint">{t(lang, "table.turnHint")}</p>
+            )}
             <button
               className="btn"
               onClick={() => {

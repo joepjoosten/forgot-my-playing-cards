@@ -91,6 +91,14 @@ export const setTurn = mutation({
   },
 });
 
+/** Hand the dealer button to a player, or park it (also purely cosmetic). */
+export const setDealer = mutation({
+  args: { tableId: v.id("tables"), playerId: v.optional(v.id("players")) },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.tableId, { dealerPlayerId: args.playerId });
+  },
+});
+
 /** Insert one freshly dealt card; the overrides say where it starts. */
 const insertCard = (
   ctx: MutationCtx,
