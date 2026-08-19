@@ -26,3 +26,6 @@ export const defaultConfig: TableConfig = {
 };
 
 export const storedPlayerKey = (tableId: string) => `fmpc:player:${tableId}`;
+
+/** The last name this phone joined with, prefilled on every join form. */
+export const storedNameKey = "fmpc:name";
