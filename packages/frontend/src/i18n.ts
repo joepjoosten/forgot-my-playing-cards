@@ -109,7 +109,6 @@ const en = {
   "join.yourName": "Your name",
   "join.join": "Join table",
   "join.joining": "Joining…",
-  "join.continue": "Continue previous session",
   "join.defaultPlayerName": "Player",
 
   // Player
@@ -236,7 +235,6 @@ const nl: Record<MessageKey, string> = {
   "join.yourName": "Je naam",
   "join.join": "Meedoen",
   "join.joining": "Meedoen…",
-  "join.continue": "Vorige sessie voortzetten",
   "join.defaultPlayerName": "Speler",
 
   // Player
