@@ -2,7 +2,6 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { circlePosition, clamp01, PLAYER_COLORS } from "./lib/layout";
 import { moveCards } from "./lib/zones";
-import { touchTable } from "./lib/activity";
 
 export const join = mutation({
   args: { tableId: v.id("tables"), name: v.string() },
@@ -18,7 +17,6 @@ export const join = mutation({
     const seat = players.reduce((max, p) => Math.max(max, p.seat), -1) + 1;
     const pos = circlePosition(seat, players.length + 1);
 
-    await touchTable(ctx, args.tableId);
     return await ctx.db.insert("players", {
       tableId: args.tableId,
       name: args.name,

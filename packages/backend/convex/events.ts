@@ -2,7 +2,6 @@ import { query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { touchTable } from "./lib/activity";
 
 /** The latest table events, newest first (the table animates fresh ones). */
 export const recent = query({
@@ -41,8 +40,6 @@ export const emit = async (
     }
   }
   await ctx.db.insert("events", { tableId, kind, playerId, ...extra });
-  // Every animated action is proof the table is in use.
-  await touchTable(ctx, tableId);
 };
 
 export const clearAll = async (
