@@ -62,7 +62,6 @@ export const presets: ReadonlyArray<Preset> = [
     playToBoard: true,
     playFaceUp: true,
     turnMarker: true,
-    dealerButton: true,
   }),
   preset("duizenden", "💯", "preset.duizenden", {
     // Two full decks with jokers, 13 cards each; one card is flipped open
@@ -76,7 +75,6 @@ export const presets: ReadonlyArray<Preset> = [
     playFaceUp: true,
     startBurnCount: 1,
     turnMarker: true,
-    dealerButton: true,
   }),
   preset("hearts", "♥️", "preset.hearts", {
     deckCount: 1,
@@ -88,7 +86,6 @@ export const presets: ReadonlyArray<Preset> = [
     playToBoard: true,
     playFaceUp: true,
     turnMarker: true,
-    dealerButton: true,
   }),
   preset("gofish", "🐟", "preset.gofish", {
     deckCount: 1,
