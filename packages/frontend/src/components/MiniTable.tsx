@@ -97,7 +97,7 @@ export const MiniTable = ({ table, players, cards, targeting }: MiniTableProps) 
               : (e) => {
                   e.stopPropagation();
                   if (card.groupId !== undefined) targeting.onAddToGroup(card.groupId);
-                  else targeting.onGroupWith(card._id as CardId);
+                  else targeting.onGroupWith(card._id);
                 }
           }
         >

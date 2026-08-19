@@ -11,6 +11,16 @@ body,
   overscroll-behavior: none;
 }
 
+/* In standalone (home-screen) mode `100%` can come up short of the real
+   viewport, leaving a white strip behind the home indicator. dvh tracks
+   the true dynamic viewport (vh is the fallback), and the dark backdrop
+   covers any overscroll gap. */
+html {
+  height: 100vh;
+  height: 100dvh;
+  background: #0d3f27;
+}
+
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: radial-gradient(circle at 50% 30%, #1e7a4f 0%, #145a39 55%, #0d3f27 100%);
@@ -30,7 +40,10 @@ select {
 
 .page {
   min-height: 100%;
-  padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+  padding: calc(24px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right))
+    calc(24px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -329,7 +342,8 @@ select {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  padding: 10px calc(12px + env(safe-area-inset-right)) 10px
+  padding: calc(10px + env(safe-area-inset-top))
+    calc(12px + env(safe-area-inset-right)) 10px
     calc(12px + env(safe-area-inset-left));
 }
 
@@ -351,7 +365,9 @@ select {
 .board-wrap {
   flex: 1;
   position: relative;
-  padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+  padding: 0 calc(12px + env(safe-area-inset-right))
+    calc(12px + env(safe-area-inset-bottom))
+    calc(12px + env(safe-area-inset-left));
   min-height: 0;
 }
 
@@ -486,6 +502,10 @@ select {
 
 .board-card.drop-target {
   border-radius: 8px;
+}
+
+.pile.drop-target {
+  border-radius: 10px;
 }
 
 .board-group-ring {
@@ -732,11 +752,17 @@ select {
 
 /* ---------- player view ---------- */
 
+/* In standalone (home-screen) mode the page extends under the status bar,
+   the Dynamic Island and the home indicator; every inset keeps the header
+   buttons and the hand reachable. */
 .player-page {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+  padding: calc(12px + env(safe-area-inset-top))
+    calc(12px + env(safe-area-inset-right))
+    calc(12px + env(safe-area-inset-bottom))
+    calc(12px + env(safe-area-inset-left));
   gap: 12px;
 }
 
@@ -1011,7 +1037,11 @@ select {
 /* Small phones in landscape: every vertical pixel counts. */
 @media (max-height: 480px) and (orientation: landscape) {
   .player-page {
-    padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+    /* The notch sits left or right in landscape. */
+    padding: calc(6px + env(safe-area-inset-top))
+      calc(12px + env(safe-area-inset-right))
+      calc(6px + env(safe-area-inset-bottom))
+      calc(12px + env(safe-area-inset-left));
     gap: 6px;
   }
 

@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { circlePosition, PLAYER_COLORS } from "./lib/layout";
+import { circlePosition, clamp01, PLAYER_COLORS } from "./lib/layout";
+import { moveCards } from "./lib/zones";
 
 export const join = mutation({
   args: { tableId: v.id("tables"), name: v.string() },
@@ -50,8 +51,8 @@ export const move = mutation({
   args: { playerId: v.id("players"), x: v.number(), y: v.number() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.playerId, {
-      x: Math.min(1, Math.max(0, args.x)),
-      y: Math.min(1, Math.max(0, args.y)),
+      x: clamp01(args.x),
+      y: clamp01(args.y),
     });
   },
 });
@@ -127,24 +128,7 @@ export const leave = mutation({
       .query("cards")
       .withIndex("by_owner", (q) => q.eq("ownerId", args.playerId))
       .collect();
-
-    const stock = await ctx.db
-      .query("cards")
-      .withIndex("by_table_zone", (q) =>
-        q.eq("tableId", player.tableId).eq("zone", "stock"),
-      )
-      .collect();
-
-    let bottom = stock.reduce((min, c) => Math.min(min, c.order), 0);
-    for (const card of hand) {
-      bottom--;
-      await ctx.db.patch(card._id, {
-        zone: "stock",
-        ownerId: undefined,
-        order: bottom,
-        faceUp: false,
-      });
-    }
+    await moveCards(ctx, hand, { zone: "stock", at: "bottom" });
 
     const table = await ctx.db.get(player.tableId);
     if (table?.turnPlayerId === args.playerId) {

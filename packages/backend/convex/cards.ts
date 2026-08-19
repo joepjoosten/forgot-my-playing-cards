@@ -3,6 +3,15 @@ import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { emit } from "./events";
+import { clamp01 } from "./lib/layout";
+import {
+  groupMembers,
+  leaveGroup,
+  moveCards,
+  nextBoardZ,
+  topCard,
+  zoneCards,
+} from "./lib/zones";
 
 /**
  * Everything the table screen needs. Hand cards are only exposed as counts:
@@ -74,52 +83,6 @@ export const reorderHand = mutation({
   },
 });
 
-const nextBoardZ = async (
-  ctx: MutationCtx,
-  tableId: Id<"tables">,
-): Promise<number> => {
-  const board = await ctx.db
-    .query("cards")
-    .withIndex("by_table_zone", (q) => q.eq("tableId", tableId).eq("zone", "board"))
-    .collect();
-  return board.reduce((max, c) => Math.max(max, c.z), 0) + 1;
-};
-
-/** All board cards of one group, in slot order. */
-const groupMembers = async (
-  ctx: MutationCtx,
-  tableId: Id<"tables">,
-  groupId: string,
-): Promise<Array<Doc<"cards">>> => {
-  const board = await ctx.db
-    .query("cards")
-    .withIndex("by_table_zone", (q) => q.eq("tableId", tableId).eq("zone", "board"))
-    .collect();
-  return board
-    .filter((c) => c.groupId === groupId)
-    .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
-};
-
-/**
- * Take a card out of its group (because it moves elsewhere): the remaining
- * members close ranks, and a group of one dissolves into a loose card.
- */
-const leaveGroup = async (ctx: MutationCtx, card: Doc<"cards">): Promise<void> => {
-  if (card.groupId === undefined) return;
-  const rest = (await groupMembers(ctx, card.tableId, card.groupId)).filter(
-    (c) => c._id !== card._id,
-  );
-  if (rest.length <= 1) {
-    for (const c of rest) {
-      await ctx.db.patch(c._id, { groupId: undefined, slot: undefined });
-    }
-    return;
-  }
-  for (let i = 0; i < rest.length; i++) {
-    if (rest[i]!.slot !== i) await ctx.db.patch(rest[i]!._id, { slot: i });
-  }
-};
-
 /** Throw a card from a hand (or move it from anywhere) onto the board. */
 export const play = mutation({
   args: {
@@ -131,8 +94,8 @@ export const play = mutation({
   handler: async (ctx, args) => {
     const card = await ctx.db.get(args.cardId);
     if (card === null) return;
-    const x = Math.min(1, Math.max(0, args.x));
-    const y = Math.min(1, Math.max(0, args.y));
+    const x = clamp01(args.x);
+    const y = clamp01(args.y);
     const thrownBy = card.zone === "hand" ? card.ownerId : undefined;
     await leaveGroup(ctx, card);
     await ctx.db.patch(args.cardId, {
@@ -155,70 +118,33 @@ export const play = mutation({
   },
 });
 
+/** Move the top card of a pile into a hand (drawing / taking the burn). */
+const takeTopInto = async (
+  ctx: MutationCtx,
+  playerId: Id<"players">,
+  from: "stock" | "burn",
+  kind: "draw" | "takeBurn",
+): Promise<Id<"cards"> | null> => {
+  const player = await ctx.db.get(playerId);
+  if (player === null) throw new Error("Player not found");
+  const top = topCard(await zoneCards(ctx, player.tableId, from));
+  if (top === null) return null;
+  await moveCards(ctx, [top], { zone: "hand", playerId });
+  await emit(ctx, player.tableId, kind, playerId);
+  return top._id;
+};
+
 /** Draw the top card of the stock pile into a hand. */
 export const draw = mutation({
   args: { playerId: v.id("players") },
-  handler: async (ctx, args) => {
-    const player = await ctx.db.get(args.playerId);
-    if (player === null) throw new Error("Player not found");
-
-    const stock = await ctx.db
-      .query("cards")
-      .withIndex("by_table_zone", (q) =>
-        q.eq("tableId", player.tableId).eq("zone", "stock"),
-      )
-      .collect();
-    if (stock.length === 0) return null;
-    const top = stock.reduce((a, b) => (b.order > a.order ? b : a));
-
-    const handCards = await ctx.db
-      .query("cards")
-      .withIndex("by_owner", (q) => q.eq("ownerId", args.playerId))
-      .collect();
-    const end = handCards.reduce((max, c) => Math.max(max, c.order), -1) + 1;
-
-    await ctx.db.patch(top._id, {
-      zone: "hand",
-      ownerId: args.playerId,
-      order: end,
-      faceUp: true,
-    });
-    await emit(ctx, player.tableId, "draw", args.playerId);
-    return top._id;
-  },
+  handler: async (ctx, args) => takeTopInto(ctx, args.playerId, "stock", "draw"),
 });
 
 /** Take the top card of the burn pile into a hand. */
 export const takeBurn = mutation({
   args: { playerId: v.id("players") },
-  handler: async (ctx, args) => {
-    const player = await ctx.db.get(args.playerId);
-    if (player === null) throw new Error("Player not found");
-
-    const burn = await ctx.db
-      .query("cards")
-      .withIndex("by_table_zone", (q) =>
-        q.eq("tableId", player.tableId).eq("zone", "burn"),
-      )
-      .collect();
-    if (burn.length === 0) return null;
-    const top = burn.reduce((a, b) => (b.order > a.order ? b : a));
-
-    const handCards = await ctx.db
-      .query("cards")
-      .withIndex("by_owner", (q) => q.eq("ownerId", args.playerId))
-      .collect();
-    const end = handCards.reduce((max, c) => Math.max(max, c.order), -1) + 1;
-
-    await ctx.db.patch(top._id, {
-      zone: "hand",
-      ownerId: args.playerId,
-      order: end,
-      faceUp: true,
-    });
-    await emit(ctx, player.tableId, "takeBurn", args.playerId);
-    return top._id;
-  },
+  handler: async (ctx, args) =>
+    takeTopInto(ctx, args.playerId, "burn", "takeBurn"),
 });
 
 /** Discard a card (from hand or board) onto the burn pile. */
@@ -228,25 +154,20 @@ export const burn = mutation({
     const card = await ctx.db.get(args.cardId);
     if (card === null) return;
     const discardedBy = card.zone === "hand" ? card.ownerId : undefined;
-    const pile = await ctx.db
-      .query("cards")
-      .withIndex("by_table_zone", (q) =>
-        q.eq("tableId", card.tableId).eq("zone", "burn"),
-      )
-      .collect();
-    const top = pile.reduce((max, c) => Math.max(max, c.order), -1) + 1;
-    await leaveGroup(ctx, card);
-    await ctx.db.patch(args.cardId, {
-      zone: "burn",
-      ownerId: undefined,
-      groupId: undefined,
-      slot: undefined,
-      order: top,
-      faceUp: true,
-    });
+    await moveCards(ctx, [card], { zone: "burn" });
     if (discardedBy !== undefined) {
       await emit(ctx, card.tableId, "burn", discardedBy);
     }
+  },
+});
+
+/** Put a card (from hand or board) back on top of the stock pile, face down. */
+export const toStock = mutation({
+  args: { cardId: v.id("cards") },
+  handler: async (ctx, args) => {
+    const card = await ctx.db.get(args.cardId);
+    if (card === null) return;
+    await moveCards(ctx, [card], { zone: "stock", at: "top" });
   },
 });
 
@@ -260,8 +181,8 @@ export const moveOnBoard = mutation({
     await ctx.db.patch(args.cardId, {
       groupId: undefined,
       slot: undefined,
-      x: Math.min(1, Math.max(0, args.x)),
-      y: Math.min(1, Math.max(0, args.y)),
+      x: clamp01(args.x),
+      y: clamp01(args.y),
       z: await nextBoardZ(ctx, card.tableId),
     });
   },
@@ -278,8 +199,8 @@ export const moveGroup = mutation({
   handler: async (ctx, args) => {
     const members = await groupMembers(ctx, args.tableId, args.groupId);
     if (members.length === 0) return;
-    const x = Math.min(1, Math.max(0, args.x));
-    const y = Math.min(1, Math.max(0, args.y));
+    const x = clamp01(args.x);
+    const y = clamp01(args.y);
     let z = await nextBoardZ(ctx, args.tableId);
     for (const card of members) {
       await ctx.db.patch(card._id, { x, y, z: z++ });
@@ -302,20 +223,7 @@ export const pickUp = mutation({
   handler: async (ctx, args) => {
     const card = await ctx.db.get(args.cardId);
     if (card === null || card.zone !== "board") return;
-    await leaveGroup(ctx, card);
-    const handCards = await ctx.db
-      .query("cards")
-      .withIndex("by_owner", (q) => q.eq("ownerId", args.playerId))
-      .collect();
-    const end = handCards.reduce((max, c) => Math.max(max, c.order), -1) + 1;
-    await ctx.db.patch(args.cardId, {
-      zone: "hand",
-      ownerId: args.playerId,
-      groupId: undefined,
-      slot: undefined,
-      order: end,
-      faceUp: true,
-    });
+    await moveCards(ctx, [card], { zone: "hand", playerId: args.playerId });
     // The card's board position is where the pick-up animation starts; the
     // card id lets the screen that caused the pick-up skip the redundant
     // animation (it already showed the card being dragged there).
@@ -342,8 +250,8 @@ export const playMany = mutation({
   handler: async (ctx, args) => {
     const first = args.cardIds[0] === undefined ? null : await ctx.db.get(args.cardIds[0]);
     if (first === null) return;
-    const x = Math.min(1, Math.max(0, args.x));
-    const y = Math.min(1, Math.max(0, args.y));
+    const x = clamp01(args.x);
+    const y = clamp01(args.y);
     const thrownBy = first.zone === "hand" ? first.ownerId : undefined;
     // A single card doesn't need a group; two or more become a row.
     const groupId = args.cardIds.length > 1 ? `${args.cardIds[0]}:${Date.now()}` : undefined;
@@ -476,32 +384,14 @@ export const takeBurnAll = mutation({
     const player = await ctx.db.get(args.playerId);
     if (player === null) throw new Error("Player not found");
 
-    const burn = (
-      await ctx.db
-        .query("cards")
-        .withIndex("by_table_zone", (q) =>
-          q.eq("tableId", player.tableId).eq("zone", "burn"),
-        )
-        .collect()
-    ).sort((a, b) => a.order - b.order);
-    if (burn.length === 0) return null;
+    const burnPile = (await zoneCards(ctx, player.tableId, "burn")).sort(
+      (a, b) => a.order - b.order,
+    );
+    if (burnPile.length === 0) return null;
 
-    const handCards = await ctx.db
-      .query("cards")
-      .withIndex("by_owner", (q) => q.eq("ownerId", args.playerId))
-      .collect();
-    let end = handCards.reduce((max, c) => Math.max(max, c.order), -1) + 1;
-
-    for (const card of burn) {
-      await ctx.db.patch(card._id, {
-        zone: "hand",
-        ownerId: args.playerId,
-        order: end++,
-        faceUp: true,
-      });
-    }
+    await moveCards(ctx, burnPile, { zone: "hand", playerId: args.playerId });
     await emit(ctx, player.tableId, "takeBurnAll", args.playerId);
-    return burn.length;
+    return burnPile.length;
   },
 });
 
