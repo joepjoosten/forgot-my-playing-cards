@@ -1,5 +1,7 @@
 # 🃏 Forgot My Playing Cards
 
+**Play it now: <https://joepjoosten.github.io/forgot-my-playing-cards/>**
+
 A shared, realtime card table for playing **any** card game. The table never
 knows the rules — it only handles the *way* of playing: how many decks, how to
 shuffle (riffle, overhand, cut, perfect random), how many cards to deal, and
